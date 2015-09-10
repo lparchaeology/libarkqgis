@@ -21,6 +21,9 @@
  *                                                                         *
  ***************************************************************************/
 """
+
+from sets import Set
+
 from PyQt4.QtCore import QVariant, QDir
 
 from qgis.core import *
@@ -382,3 +385,13 @@ class LayerCollection:
         elif (layerExtent is None or layerExtent.isNull()):
             return extent
         return extent.combineExtentWith(layerExtent)
+
+    def uniqueValues(self, fieldName):
+        vals = set()
+        vals.update(self._uniqueValues(self.pointsLayer, fieldName))
+        vals.update(self._uniqueValues(self.linesLayer, fieldName))
+        vals.update(self._uniqueValues(self.polygonsLayer, fieldName))
+        return list(vals)
+
+    def _uniqueValues(self, layer, fieldName):
+        return layer.uniqueValues(layer.fieldNameIndex(fieldName))
