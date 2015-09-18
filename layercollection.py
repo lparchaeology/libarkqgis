@@ -75,6 +75,7 @@ class LayerCollection:
     _buffersGroupIndex = -1
 
     filter = ''
+    selection = ''
 
     def __init__(self, iface, settings):
         self._iface = iface
@@ -352,6 +353,18 @@ class LayerCollection:
         layer.setSubsetString(filter)
         self._iface.mapCanvas().refresh()
         self._iface.legendInterface().refreshLayerSymbology(layer)
+
+
+    def applySelection(self, expression):
+        self.selection = expression
+        self._applyLayerSelection(self.pointsLayer, self.selection)
+        self._applyLayerSelection(self.linesLayer, self.selection)
+        self._applyLayerSelection(self.polygonsLayer, self.selection)
+
+
+    def _applyLayerSelection(self, layer, expression):
+        fit = layer.getFeatures(QgsFeatureRequest().setFilterExpression(expression))
+        layer.setSelectedFeatures([f.id() for f in fit])
 
 
     def zoomToExtent(self):
