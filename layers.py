@@ -130,16 +130,24 @@ def cloneAsMemoryLayer(layer, name, styleURI=None):
         return createMemoryLayer(name, layer.wkbType(), layer.crs().authid(), layer.dataProvider().fields(), styleURI)
     return None
 
-def groupNameIndex(iface, groupName):
+def getGroupIndex(iface, groupName):
     groupIndex = -1
     i = 0
     for name in iface.legendInterface().groups():
         if (groupIndex < 0 and name == groupName):
             groupIndex = i
         i += 1
-    if (groupIndex < 0):
-        groupIndex = iface.legendInterface().addGroup(groupName)
     return groupIndex
+
+def createLayerGroup(iface, groupName, parentGroupName=''):
+    groupIndex = getGroupIndex(iface, groupName)
+    if (groupIndex >= 0):
+        return groupIndex
+    if parentGroupName:
+        parentGroupIndex = getGroupIndex(iface, parentGroupName)
+        if (parentGroupIndex >= 0):
+            return iface.legendInterface().addGroup(groupName, True, parentGroupIndex)
+    return iface.legendInterface().addGroup(groupName, True)
 
 def getLayerId(layerName):
     layerList = QgsMapLayerRegistry.instance().mapLayersByName(layerName)

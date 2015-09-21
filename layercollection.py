@@ -32,6 +32,9 @@ import utils, layers, snapping
 
 class LayerCollectionSettings:
 
+    collectionGroupName = ''
+    parentGroupName = ''
+
     buffersGroupName = ''
     bufferSuffix = ''
 
@@ -161,7 +164,7 @@ class LayerCollection:
     # Load the collection layers if not already loaded
     def loadCollection(self):
         if (self._collectionGroupIndex < 0):
-            self._collectionGroupIndex = layers.groupNameIndex(self._iface, self._settings.collectionGroupName)
+            self._collectionGroupIndex = layers.createLayerGroup(self._iface, self._settings.collectionGroupName, self._settings.parentGroupName)
         self.polygonsLayer, self.polygonsLayerId = self._loadLayer(self._settings.polygonsLayerName, self._settings.polygonsLayerPath, self._settings.polygonsLayerProvider, self._settings.polygonsStylePath, self._collectionGroupIndex)
         self.linesLayer, self.linesLayerId = self._loadLayer(self._settings.linesLayerName, self._settings.linesLayerPath, self._settings.linesLayerProvider, self._settings.linesStylePath, self._collectionGroupIndex)
         self.pointsLayer, self.pointsLayerId = self._loadLayer(self._settings.pointsLayerName, self._settings.pointsLayerPath, self._settings.pointsLayerProvider, self._settings.pointsStylePath, self._collectionGroupIndex)
@@ -179,7 +182,7 @@ class LayerCollection:
         self._removeOldBuffers()
 
         if (self._buffersGroupIndex < 0):
-            self._buffersGroupIndex = layers.groupNameIndex(self._iface, self._settings.buffersGroupName)
+            self._buffersGroupIndex = layers.createLayerGroup(self._iface, self._settings.buffersGroupName, self._settings.parentGroupName)
 
         if (self.polygonsBuffer is None or not self.polygonsBuffer.isValid()):
             self.polygonsBuffer, self.polygonsBufferId = self._createBufferLayer(self.polygonsLayer, self._settings.polygonsStylePath)
