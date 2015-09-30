@@ -402,6 +402,7 @@ class LayerCollection:
             return extent
         return extent.combineExtentWith(layerExtent)
 
+
     def uniqueValues(self, fieldName):
         vals = set()
         vals.update(self._uniqueValues(self.pointsLayer, fieldName))
@@ -409,5 +410,29 @@ class LayerCollection:
         vals.update(self._uniqueValues(self.polygonsLayer, fieldName))
         return list(vals)
 
+
     def _uniqueValues(self, layer, fieldName):
         return layer.uniqueValues(layer.fieldNameIndex(fieldName))
+
+
+    def updateAttribute(self, attribute, value, expression=None):
+        self._updateAttribute(self.pointsLayer, attribute, value, expression)
+        self._updateAttribute(self.linesLayer, attribute, value, expression)
+        self._updateAttribute(self.polygonsLayer, attribute, value, expression)
+
+
+    def updateBufferAttribute(self, attribute, value, expression=None):
+        self._updateAttribute(self.pointsBuffer, attribute, value, expression)
+        self._updateAttribute(self.linesBuffer, attribute, value, expression)
+        self._updateAttribute(self.polygonsBuffer, attribute, value, expression)
+
+
+    def _updateAttribute(self, layer, attribute, value, expression=None):
+        idx = layer.fieldNameIndex(attribute)
+        fit = None
+        if expression is None or expression == '':
+            fit = layer.getFeatures()
+        else:
+            fit = layer.getFeatures(QgsFeatureRequest().setFilterExpression(expression))
+        for f in fit:
+            layer.changeAttributeValue(f.id(), idx, value)
