@@ -145,20 +145,23 @@ class LayerCollection:
     def _loadLayer(self, layerName, layerPath, layerProvider, stylePath, groupIndex):
         if (layerName is None or layerName == '' or layerPath is None or layerPath == ''):
             return None, ''
+        layer = None
         # If the layer is already loaded, use it and return
         layerList = QgsMapLayerRegistry.instance().mapLayersByName(layerName)
         if (len(layerList) > 0):
-            self._iface.legendInterface().moveLayer(layerList[0], groupIndex)
-            return layerList[0], layerList[0].id()
-        # Otherwise load the layer and add it to the legend
-        layer = QgsVectorLayer(layerPath, layerName, layerProvider)
+            layer = layerList[0]
+            self._iface.legendInterface().moveLayer(layer, groupIndex)
+        else:
+            # Otherwise load the layer and add it to the legend
+            layer = QgsVectorLayer(layerPath, layerName, layerProvider)
+            layer = layers.addLayerToLegend(self._iface, layer, groupIndex)
+
         if (layer is not None and layer.isValid()):
             self._setDefaultSnapping(layer)
             if (stylePath is not None and stylePath != ''):
                 layer.loadNamedStyle(stylePath)
-            layer = layers.addLayerToLegend(self._iface, layer, groupIndex)
-            if (layer is not None and layer.isValid()):
-                return layer, layer.id()
+            return layer, layer.id()
+
         return None, ''
 
     # Load the collection layers if not already loaded
@@ -168,6 +171,9 @@ class LayerCollection:
         self.polygonsLayer, self.polygonsLayerId = self._loadLayer(self._settings.polygonsLayerName, self._settings.polygonsLayerPath, self._settings.polygonsLayerProvider, self._settings.polygonsStylePath, self._collectionGroupIndex)
         self.linesLayer, self.linesLayerId = self._loadLayer(self._settings.linesLayerName, self._settings.linesLayerPath, self._settings.linesLayerProvider, self._settings.linesStylePath, self._collectionGroupIndex)
         self.pointsLayer, self.pointsLayerId = self._loadLayer(self._settings.pointsLayerName, self._settings.pointsLayerPath, self._settings.pointsLayerProvider, self._settings.pointsStylePath, self._collectionGroupIndex)
+        # TODO This is dangerous and needs a rethink!
+        self.applyFilter('')
+        self._iface.mapCanvas().refresh()
         # TODO actually check if is OK
         return True
 
