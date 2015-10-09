@@ -32,44 +32,158 @@ TopoEditToolButton: A button to configure topological editing for a project.
 """
 
 from PyQt4.QtCore import Qt, pyqtSignal, QSettings
-from PyQt4.QtGui import QToolButton, QMenu, QIcon, QAction, QActionGroup, QWidgetAction, QDoubleSpinBox
+from PyQt4.QtGui import QToolButton, QMenu, QIcon, QAction, QActionGroup, QWidgetAction, QDoubleSpinBox, QComboBox
 
-from qgis.core import QGis, QgsTolerance, QgsProject, QgsSnapper, QgsMapLayer
+from qgis.core import QGis, QgsTolerance, QgsProject, QgsSnapper, QgsMapLayer, QgsMessageLog
+from qgis.gui import QgsMessageBar
 
 import resources_rc
 
 # Project setting utilities
 
+def projectSnappingMode(defaultValue='current_layer'):
+    return QgsProject.instance().readEntry("Digitizing", "/SnappingMode", defaultValue)[0];
+
+def setProjectSnappingMode(mode='current_layer'):
+    return QgsProject.instance().writeEntry("Digitizing", "/SnappingMode", mode);
+
+# TODO Rename/Rework this method!
 def defaultSnappingMode():
-    defaultSnappingModeString = QSettings().value('/qgis/digitizing/default_snap_mode', 'to vertex')
-    defaultSnappingMode = QgsSnapper.SnapToVertex
+    defaultSnappingModeString = defaultSnappingType('to vertex')
     if (defaultSnappingModeString == "to vertex and segment" ):
         return QgsSnapper.SnapToVertexAndSegment
     elif (defaultSnappingModeString == 'to segment'):
         return QgsSnapper.SnapToSegment
     return QgsSnapper.SnapToVertex
 
-def defaultSnappingUnit():
-    unit = QSettings().value('/qgis/digitizing/default_snapping_tolerance_unit', 0, int)
+def defaultSnappingType(defaultValue='off'):
+    mode = QSettings().value('/qgis/digitizing/default_snap_mode', defaultValue)
+    if mode is None or mode == '':
+        mode = defaultValue
+    return mode
+
+def projectSnappingType(defaultValue='off'):
+    return QgsProject.instance().readEntry("Digitizing", "/DefaultSnapType", defaultSnappingType(defaultValue))[0];
+
+def setProjectSnappingType(snapType='off'):
+    return QgsProject.instance().writeEntry("Digitizing", "/DefaultSnapType", snapType);
+
+def defaultSnappingUnit(defaultValue=QgsTolerance.ProjectUnits):
+    unit = QSettings().value('/qgis/digitizing/default_snapping_tolerance_unit', defaultValue, int)
     # Huh???
     if unit is None:
-        return 0
+        unit = defaultValue
     return unit
 
-def defaultSnappingTolerance():
-    tolerance = QSettings().value('/qgis/digitizing/default_snapping_tolerance', 10.0, float)
+def projectSnappingUnit(defaultValue=QgsTolerance.ProjectUnits):
+    tolerance = QgsProject.instance().readDoubleEntry("Digitizing", "/DefaultSnapToleranceUnit", defaultSnappingTolerance(defaultValue))[0];
+
+def setProjectSnappingUnit(unit=QgsTolerance.ProjectUnits):
+    return QgsProject.instance().writeEntry("Digitizing", "/DefaultSnapToleranceUnit", unit);
+
+def defaultSnappingTolerance(defaultValue=0.0):
+    tolerance = QSettings().value('/qgis/digitizing/default_snapping_tolerance', defaultValue, float)
     # Huh???
     if tolerance is None:
-        return 10.0
+        tolerance = defaultValue
     return tolerance
 
+def projectSnappingTolerance(defaultValue=0.0):
+    tolerance = QgsProject.instance().readDoubleEntry("Digitizing", "/DefaultSnapTolerance", defaultSnappingTolerance(defaultValue))[0];
+
+def setProjectSnappingTolerance(tolerance=0.0):
+    return QgsProject.instance().writeEntry("Digitizing", "/DefaultSnapTolerance", tolerance);
+
 def topologicalEditing():
-    return QgsProject.instance().readNumEntry('Digitizing', '/TopologicalEditing', 0)
+    return QgsProject.instance().readNumEntry('Digitizing', '/TopologicalEditing', 0)[0]
 
 def intersectionLayers():
-    return QgsProject.instance().readListEntry('Digitizing', '/AvoidIntersectionsList')
+    return QgsProject.instance().readListEntry('Digitizing', '/AvoidIntersectionsList')[0]
+
 
 # Snapping Widgets
+
+class SnappingModeCombo(QComboBox):
+
+    snappingModeChanged = pyqtSignal(str)
+
+    _project = QgsProject.instance()
+
+    def __init__(self, parent=None):
+
+        QComboBox.__init__(self, parent)
+
+        self.addItem('Off', 'off')
+        self.addItem('Current Layer', 'current_layer')
+        self.addItem('All Layers', 'all_layers')
+        self.addItem('Selected Layers', 'advanced')
+        self.setCurrentIndex(0)
+
+        self._refresh()
+        self.currentIndexChanged.connect(self._changed)
+
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+        self.snappingModeChanged.connect(self._project.snapSettingsChanged)
+
+    # Private API
+
+    def _changed(self, idx):
+        mode = self.itemData(self.currentIndex())
+        if mode == 'off':
+            setProjectSnappingMode('current_layer')
+            setProjectSnappingType('off')
+        else:
+            setProjectSnappingMode(mode)
+        self.snappingModeChanged.emit(mode)
+
+    def _refresh(self):
+        mode = projectSnappingMode()
+        if projectSnappingType() == 'off' and mode == 'current_layer':
+            mode = 'off'
+        idx = self.findData(mode)
+        self.setCurrentIndex(idx)
+
+
+class SnappingTypeCombo(QComboBox):
+
+    snappingTypeChanged = pyqtSignal(str)
+
+    _project = QgsProject.instance()
+
+    def __init__(self, parent=None):
+
+        QComboBox.__init__(self, parent)
+
+        self.addItem('Off', 'off')
+        self.addItem('Vertex', 'to vertex')
+        self.addItem('Segment', 'to segment')
+        self.addItem('Vertex and Segment', 'to vertex and segment')
+        self.setCurrentIndex(0)
+
+        self._refresh()
+        self.currentIndexChanged.connect(self._changed)
+
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+        self.snappingTypeChanged.connect(self._project.snapSettingsChanged)
+
+    # Private API
+
+    def _changed(self, idx):
+        snapType = self.itemData(self.currentIndex())
+        setProjectSnappingType(snapType)
+        self.snappingTypeChanged.emit(snapType)
+
+    def _refresh(self):
+        snapType = projectSnappingType()
+        idx = self.findData(snapType)
+        self.setCurrentIndex(idx)
+
 
 class SnappingToolButton(QToolButton):
 
