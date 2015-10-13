@@ -179,8 +179,10 @@ class LayerCollection:
 
     def _setDefaultSnapping(self, layer):
         # TODO Check if layer id already in settings, only set defaults if it isn't
-        QgsProject.instance().setSnapSettingsForLayer(layer.id(), True, snapping.defaultSnappingMode(),
-                                                      snapping.defaultSnappingUnit(), snapping.defaultSnappingTolerance(), False)
+        res = QgsProject.instance().snapSettingsForLayer(layer.id())
+        if not res[0]:
+            QgsProject.instance().setSnapSettingsForLayer(layer.id(), True, snapping.defaultSnapperType(),
+                                                          snapping.defaultSnappingUnit(), snapping.defaultSnappingTolerance(), False)
 
     # Setup the in-memory buffer layers
     def createBuffers(self):
