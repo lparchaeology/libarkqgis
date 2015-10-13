@@ -279,14 +279,9 @@ class ArkMapToolInteractive(QgsMapTool):
         if (res != 0 or len(snapResults) < 1):
             return self.toMapCoordinates(cursorPoint), False
         else:
-            return snapResults[0].snappedVertex, True
-
-    def _snapMapPoint(self, mapPoint):
-        res, snapResults = self._snapper.snapToBackgroundLayers(mapPoint)
-        if (res != 0 or len(snapResults) < 1):
-            return mapPoint, False
-        else:
-            return snapResults[0].snappedVertex, True
+            # Take a copy as QGIS will delete the result!
+            snappedVertex = QgsPoint(snapResults[0].snappedVertex)
+            return snappedVertex, True
 
     def _createSnappingMarker(self, snapPoint):
         if (self._snappingMarker is None):
