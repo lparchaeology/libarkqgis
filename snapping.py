@@ -55,9 +55,9 @@ def setProjectSnappingMode(mode='current_layer'):
 
 def defaultSnapperType():
     defaultSnappingTypeString = defaultSnappingType()
-    if (defaultSnappingModeString == "to vertex and segment" or defaultSnappingModeString == "to_vertex_and_segment"):
+    if (defaultSnappingTypeString == "to vertex and segment" or defaultSnappingTypeString == "to_vertex_and_segment"):
         return QgsSnapper.SnapToVertexAndSegment
-    elif (defaultSnappingModeString == 'to segment' or defaultSnappingModeString == 'to_segment'):
+    elif (defaultSnappingTypeString == 'to segment' or defaultSnappingTypeString == 'to_segment'):
         return QgsSnapper.SnapToSegment
     return QgsSnapper.SnapToVertex
 
