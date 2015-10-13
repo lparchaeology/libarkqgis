@@ -804,9 +804,9 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
                     vl = QgsMapLayerRegistry.instance().mapLayer(str(intersectionLayer))
                     #can only add topological points if background layer is editable...
                     if (vl is not None and vl.geometryType() == QGis.Polygon and vl.isEditable()):
-                        vl.self._addTopologicalPoints(feature.geometry(), layer)
+                        vl.addTopologicalPoints(feature.geometry())
             elif (topologicalEditing):
-                self._layer.self._addTopologicalPoints(feature.geometry(), layer)
+                self._layer.addTopologicalPoints(feature.geometry())
 
         self.canvas().refresh()
 
@@ -837,15 +837,6 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
         if (showModal):
             action = None
         return res
-
-    def _addTopologicalPoints(self, geometry, layer):
-        if self.canvas() is None:
-            return 1
-        if layer is None:
-            return 2
-        for point in geometry:
-            layer.self._addTopologicalPoints(point)
-        return 0
 
     def _layerPoints(self, mapPointList, layer):
         layerPoints = []
