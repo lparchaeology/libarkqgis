@@ -140,10 +140,12 @@ class SnappingModeCombo(QComboBox):
     snappingModeChanged = pyqtSignal(str)
 
     _project = QgsProject.instance()
+    _snapMode = ''
+    _snapType = ''
 
     def __init__(self, parent=None):
 
-        QComboBox.__init__(self, parent)
+        super(SnappingModeCombo, self).__init__(parent)
 
         self.addItem('Off', 'off')
         self.addItem('Current Layer', 'current_layer')
@@ -165,17 +167,22 @@ class SnappingModeCombo(QComboBox):
     def _changed(self, idx):
         mode = self.itemData(self.currentIndex())
         if mode == 'off':
-            setProjectSnappingMode('current_layer')
             setProjectSnappingType('off')
+            setProjectSnappingMode('current_layer')
         else:
+            if self._snapMode == 'off' and mode != 'off':
+                setProjectSnappingType(self._snapType)
             setProjectSnappingMode(mode)
+        self._snapMode = mode
         self.snappingModeChanged.emit(mode)
 
     def _refresh(self):
         mode = projectSnappingMode()
-        if projectSnappingType() == 'off' and mode == 'current_layer':
-            mode = 'off'
-        idx = self.findData(mode)
+        if self._snapMode == 'off' and mode == 'current_layer':
+            return
+        self._snapType = projectSnappingType()
+        self._snapMode = mode
+        idx = self.findData(self._snapMode)
         self.setCurrentIndex(idx)
 
 
@@ -187,7 +194,7 @@ class SnappingTypeCombo(QComboBox):
 
     def __init__(self, parent=None):
 
-        QComboBox.__init__(self, parent)
+        super(SnappingTypeCombo, self).__init__(parent)
 
         self.addItem('Off', 'off')
         self.addItem('Vertex', 'to_vertex')
