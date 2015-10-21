@@ -181,8 +181,7 @@ class LayerCollection:
         # TODO Check if layer id already in settings, only set defaults if it isn't
         res = QgsProject.instance().snapSettingsForLayer(layer.id())
         if not res[0]:
-            QgsProject.instance().setSnapSettingsForLayer(layer.id(), True, snapping.defaultSnapperType(),
-                                                          snapping.defaultSnappingUnit(), snapping.defaultSnappingTolerance(), False)
+            QgsProject.instance().setSnapSettingsForLayer(layer.id(), True, QgsSnapper.SnapToVertex, QgsTolerance.Pixels, 10.0, False)
 
     # Setup the in-memory buffer layers
     def createBuffers(self):
@@ -207,6 +206,7 @@ class LayerCollection:
             if (buffer is not None and buffer.isValid()):
                 buffer = layers.addLayerToLegend(self._iface, buffer, self._buffersGroupIndex)
                 buffer.startEditing()
+                self._setDefaultSnapping(buffer)
                 return buffer, buffer.id()
         return None, ''
 

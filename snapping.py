@@ -42,7 +42,6 @@ import resources_rc
 # Project setting utilities
 
 def projectSnappingMode(defaultValue='current_layer'):
-    defaultValue = defaultSnappingType(defaultValue)
     res = QgsProject.instance().readEntry("Digitizing", "/SnappingMode", defaultValue);
     if res is not None and res[1]:
         return res[0]
@@ -69,6 +68,12 @@ def defaultSnappingType(defaultValue='off'):
 
 def projectSnappingType(defaultValue='off'):
     defaultValue = defaultSnappingType(defaultValue)
+    if defaultValue == 'to vertex':
+        defaultValue = 'to_vertex'
+    elif defaultValue == 'to segment':
+        defaultValue = 'to_segment'
+    elif defaultValue == 'to vertex and segment':
+        defaultValue = 'to_vertex_and_segment'
     res = QgsProject.instance().readEntry("Digitizing", "/DefaultSnapType", defaultValue);
     if res is not None and res[1]:
         return res[0]
@@ -117,12 +122,32 @@ def setProjectSnappingTolerance(tolerance=0.0):
     return QgsProject.instance().writeEntry("Digitizing", "/DefaultSnapTolerance", tolerance);
 
 
-def topologicalEditing(defaultValue=0):
-    res = QgsProject.instance().readNumEntry("Digitizing", "/TopologicalEditing", defaultValue);
+def topologicalEditing(defaultValue=True):
+    value = 0
+    if enabled:
+        value = 1
+    res = QgsProject.instance().readNumEntry("Digitizing", "/TopologicalEditing", value);
     if res is not None and res[1]:
         return res[0] > 0
     else:
         return defaultValue > 0
+
+
+def intersectionSnapping(defaultValue=True):
+    value = 0
+    if defaultValue:
+        value = 1
+    res = QgsProject.instance().readNumEntry("Digitizing", "/IntersectionSnapping", value);
+    if res is not None and res[1]:
+        return res[0] > 0
+    else:
+        return defaultValue > 0
+
+def setIntersectionSnapping(enabled=True):
+    value = 0
+    if enabled:
+        value = 1
+    return QgsProject.instance().writeEntry("Digitizing", "/IntersectionSnapping", value);
 
 
 def intersectionLayers(defaultValue=[]):
@@ -131,6 +156,84 @@ def intersectionLayers(defaultValue=[]):
         return res[0]
     else:
         return defaultValue
+
+
+# Snapping Actions
+
+class TopologicalEditingAction(QAction):
+
+    """QAction to toggle Topological Editing for a project
+    """
+
+    def __init__(self, parent=None):
+        """Initialises the Topological Editing Action
+
+        Args:
+            parent (QWidget): The parent widget, defaults to None.
+        """
+
+        super(TopologicalEditingAction, self).__init__(parent)
+
+        self.setCheckable(True)
+        self._icon = QIcon(':/plugins/Ark/draw-bezier-curves.png')
+        self.setIcon(self._icon)
+        self.setText('Topological Editing')
+
+        self._project = QgsProject.instance()
+
+        self._refresh()
+        self.toggled.connect(self._toggled)
+
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+
+    # Private API
+
+    def _toggled(self, status):
+        self._project.setTopologicalEditing(status)
+
+    def _refresh(self):
+        self.setChecked(self._project.topologicalEditing())
+
+
+class IntersectionSnappingAction(QAction):
+
+    """QAction to toggle Intersection Snapping for a project
+    """
+
+    def __init__(self, parent=None):
+        """Initialises the Intersection Snapping Action
+
+        Args:
+            parent (QWidget): The parent widget, defaults to None.
+        """
+
+        super(IntersectionSnappingAction, self).__init__(parent)
+
+        self.setCheckable(True)
+        self._icon = QIcon(':/plugins/Ark/snap-intersection.png')
+        self.setIcon(self._icon)
+        self.setText('Intersection Snapping')
+
+        self._project = QgsProject.instance()
+
+        self._refresh()
+        self.toggled.connect(self._toggled)
+
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+
+    # Private API
+
+    def _toggled(self, status):
+        setIntersectionSnapping(status)
+
+    def _refresh(self):
+        self.setChecked(intersectionSnapping())
 
 
 # Snapping Widgets
@@ -162,10 +265,13 @@ class SnappingModeCombo(QComboBox):
         self._project.readProject.connect(self._refresh)
         self.snappingModeChanged.connect(self._project.snapSettingsChanged)
 
+    def currentMode(self):
+        return self.itemData(self.currentIndex())
+
     # Private API
 
     def _changed(self, idx):
-        mode = self.itemData(self.currentIndex())
+        mode = self.currentMode()
         if mode == 'off':
             setProjectSnappingType('off')
             setProjectSnappingMode('current_layer')
@@ -224,6 +330,110 @@ class SnappingTypeCombo(QComboBox):
         self.setCurrentIndex(idx)
 
 
+class SnappingUnitCombo(QComboBox):
+
+    snappingUnitChanged = pyqtSignal(int)
+
+    _project = QgsProject.instance()
+
+    def __init__(self, parent=None):
+
+        super(SnappingUnitCombo, self).__init__(parent)
+
+        self.addItem('Pixels', QgsTolerance.Pixels)
+        self.addItem('Layer Units', QgsTolerance.LayerUnits)
+        self.addItem('Project Units', QgsTolerance.ProjectUnits)
+        self.setCurrentIndex(0)
+
+        self._refresh()
+        self.currentIndexChanged.connect(self._changed)
+
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+        self.snappingUnitChanged.connect(self._project.snapSettingsChanged)
+
+    # Private API
+
+    def _changed(self, idx):
+        snapUnit = self.itemData(self.currentIndex())
+        setProjectSnappingUnit(snapUnit)
+        self.snappingUnitChanged.emit(snapUnit)
+
+    def _refresh(self):
+        snapUnit = projectSnappingUnit()
+        idx = self.findData(snapUnit)
+        self.setCurrentIndex(idx)
+
+
+class SnappingToleranceSpinBox(QDoubleSpinBox):
+
+    snappingToleranceChanged = pyqtSignal(float)
+
+    _iface = None
+    _project = QgsProject.instance()
+
+    def __init__(self, parent=None):
+
+        super(SnappingToleranceSpinBox, self).__init__(parent)
+
+        self.setDecimals(5)
+        self.setRange(0.0, 100000000.0)
+
+        self._refresh()
+        self.valueChanged.connect(self._changed)
+
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+        self.snappingToleranceChanged.connect(self._project.snapSettingsChanged)
+
+    def setIface(self, iface):
+        self._iface = iface
+        self._refresh()
+
+    # Private API
+
+    def _changed(self, idx):
+        setProjectSnappingTolerance(self.value())
+        self.snappingToleranceChanged.emit(self.value())
+
+    def _refresh(self):
+        self.setValue(projectSnappingTolerance())
+        unit = projectSnappingUnit()
+        if (unit == QgsTolerance.Pixels):
+            self.setSuffix(' px')
+        elif self._iface == None:
+            self.setSuffix('')
+        elif unit == QgsTolerance.LayerUnits: # == MapUnits
+            layerUnits = None
+            mode = projectSnappingMode()
+            if mode == 'current_layer':
+                layerUnits = self._iface.mapCanvas().currentLayer().crs().mapUnits()
+            else:
+                # TODO Find out the correct option here for all_layers!
+                layerUnits = self._iface.mapCanvas().mapUnits()
+            suffix = _unitToSuffix(layerUnits)
+            self.setSuffix(suffix)
+        elif unit == QgsTolerance.ProjectUnits:
+            projectUnits = self._iface.mapCanvas().mapUnits()
+            suffix = _unitToSuffix(projectUnits)
+            self.setSuffix(suffix)
+
+
+def _unitToSuffix(unit):
+    if unit == QGis.Meters:
+        return ' m'
+    elif unit == QGis.Feet:
+        return ' ft'
+    elif unit == QGis.NauticalMiles:
+        return ' NM'
+    else:
+        return ' °'
+
+
 class SnappingToolButton(QToolButton):
 
     """Tool button to change snapping settings for a QGIS vector layer
@@ -234,7 +444,7 @@ class SnappingToolButton(QToolButton):
 
     snapSettingsChanged = pyqtSignal(str, bool, QgsSnapper.SnappingType, QgsTolerance.UnitType, float, bool)
 
-    _layerId = ''
+    _layer = None
     _snapEnabled = False
     _snappingType = QgsSnapper.SnapToVertex
     _unitType = QgsTolerance.Pixels
@@ -281,13 +491,13 @@ class SnappingToolButton(QToolButton):
         self._pixelUnitsAction.setStatusTip('Use Pixels')
         self._pixelUnitsAction.setCheckable(True)
 
-        self._mapUnitsAction = QAction('Map Units', self)
-        self._mapUnitsAction.setStatusTip('Use Map Units')
-        self._mapUnitsAction.setCheckable(True)
+        self._layerUnitsAction = QAction('Layer Units', self)
+        self._layerUnitsAction.setStatusTip('Use Layer Units')
+        self._layerUnitsAction.setCheckable(True)
 
         self._unitTypeActionGroup = QActionGroup(self)
         self._unitTypeActionGroup.addAction(self._pixelUnitsAction)
-        self._unitTypeActionGroup.addAction(self._mapUnitsAction)
+        self._unitTypeActionGroup.addAction(self._layerUnitsAction)
 
         self._avoidAction = QAction('Snap overlapping edges', self)
         self._avoidAction.setStatusTip('Snap to edges of any overlapping polygons, aka "Avoid Intersections"')
@@ -295,7 +505,7 @@ class SnappingToolButton(QToolButton):
 
         self._toleranceSpin = QDoubleSpinBox(self)
         self._toleranceSpin.setDecimals(5)
-        self._toleranceSpin.setMinimum(0.0)
+        self._toleranceSpin.setRange(0.0, 100000000.0)
         self._toleranceAction = QWidgetAction(self)
         self._toleranceAction.setDefaultWidget(self._toleranceSpin)
         self._toleranceAction.setStatusTip('Set the snapping tolerance')
@@ -314,7 +524,7 @@ class SnappingToolButton(QToolButton):
         self._segmentAction.triggered.connect(self._snapToSegment)
         self._vertexSegmentAction.triggered.connect(self._snapToVertexSegment)
         self._pixelUnitsAction.triggered.connect(self._usePixelUnits)
-        self._mapUnitsAction.triggered.connect(self._useMapUnits)
+        self._layerUnitsAction.triggered.connect(self._useLayerUnits)
         self._toleranceSpin.valueChanged.connect(self._toleranceChanged)
         self._avoidAction.toggled.connect(self._avoidToggled)
 
@@ -326,9 +536,9 @@ class SnappingToolButton(QToolButton):
 
     # Public API
 
-    def layerId(self):
+    def layer(self):
         """Returns the ID of the layer the button applies to"""
-        return self._layerId
+        return self._layer
 
     def setLayer(self, layer):
         """Sets the layer the button applies to
@@ -337,21 +547,21 @@ class SnappingToolButton(QToolButton):
             layer (QgsVectorLayer): Vector layer the button is to apply to.
         """
         if (layer is None):
-            self._layerId = ''
+            self._layer = None
             self.setEnabled(False)
             self._snapEnabled = False
             self._refreshButton()
         elif (layer.isValid() and layer.type() == QgsMapLayer.VectorLayer):
-            self._layerId = layer.id()
+            self._layer = layer
             self.setEnabled(True)
             self._avoidAction.setEnabled(layer.geometryType() == QGis.Polygon)
             self.updateButton()
 
     def updateButton(self):
         """Updates the button with the current snapping settings."""
-        if (self._layerId == ''):
+        if (self._layer is None):
             return
-        ok, self._snapEnabled, self._snappingType, self._unitType, self._tolerance, self._avoidIntersections = self._project.snapSettingsForLayer(self._layerId)
+        ok, self._snapEnabled, self._snappingType, self._unitType, self._tolerance, self._avoidIntersections = self._project.snapSettingsForLayer(self._layer.id())
         self._refreshButton()
 
     def disableButton(self):
@@ -361,9 +571,11 @@ class SnappingToolButton(QToolButton):
     # Private API
 
     def _updateSnapSettings(self):
-        self._project.setSnapSettingsForLayer(self._layerId, self._snapEnabled, self._snappingType, self._unitType, self._tolerance, self._avoidIntersections)
+        if (self._layer is None):
+            return
+        self._project.setSnapSettingsForLayer(self._layer.id(), self._snapEnabled, self._snappingType, self._unitType, self._tolerance, self._avoidIntersections)
         self._refreshButton()
-        self.snapSettingsChanged.emit(self._layerId, self._snapEnabled, self._snappingType, self._unitType, self._tolerance, self._avoidIntersections)
+        self.snapSettingsChanged.emit(self._layer.id(), self._snapEnabled, self._snappingType, self._unitType, self._tolerance, self._avoidIntersections)
 
     def _refreshButton(self):
 
@@ -383,8 +595,10 @@ class SnappingToolButton(QToolButton):
             self._pixelUnitsAction.setChecked(True)
             self._toleranceSpin.setSuffix(' px')
         else:
-            self._mapUnitsAction.setChecked(True)
-            self._toleranceSpin.setSuffix(' mu')
+            self._layerUnitsAction.setChecked(True)
+            layerUnits = self._layer.crs().mapUnits()
+            suffix = _unitToSuffix(layerUnits)
+            self._toleranceSpin.setSuffix(suffix)
 
         self._toleranceSpin.setValue(self._tolerance)
 
@@ -410,8 +624,8 @@ class SnappingToolButton(QToolButton):
         self._unitType = QgsTolerance.Pixels
         self._updateSnapSettings()
 
-    def _useMapUnits(self):
-        self._unitType = QgsTolerance.MapUnits
+    def _useLayerUnits(self):
+        self._unitType = QgsTolerance.LayerUnits
         self._updateSnapSettings()
 
     def _toleranceChanged(self, _tolerance):
@@ -421,42 +635,3 @@ class SnappingToolButton(QToolButton):
     def _avoidToggled(self, status):
         self._avoidIntersections = status
         self._updateSnapSettings()
-
-
-class TopoEditToolButton(QToolButton):
-
-    """Tool Button to toggle topological editing for a project
-
-    Signals:
-        topologicalEditingChanged(bool): Signal that topological editing has been changed by the button
-    """
-
-    topologicalEditingChanged = pyqtSignal(bool)
-
-    def __init__(self, parent=None):
-        """Initialises the topological editing tool button
-
-        Args:
-            parent (QWidget): The parent widget, defaults to None.
-        """
-
-        QToolButton.__init__(self, parent)
-
-        self._project = QgsProject.instance()
-
-        self._refreshButton()
-        self.toggled.connect(self._topoToggled)
-        self.toggled.connect(self.topologicalEditingChanged)
-
-        # Make sure we catch changes in the main snapping dialog
-        self._project.snapSettingsChanged.connect(self._refreshButton)
-        # If a new _project is read, update to that _project's setting
-        self._project.readProject.connect(self._refreshButton)
-
-    # Private API
-
-    def _topoToggled(self, status):
-        self._project.setTopologicalEditing(status)
-
-    def _refreshButton(self):
-        self.setChecked(self._project.topologicalEditing())
