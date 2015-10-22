@@ -124,7 +124,7 @@ def setProjectSnappingTolerance(tolerance=0.0):
 
 def topologicalEditing(defaultValue=True):
     value = 0
-    if enabled:
+    if defaultValue:
         value = 1
     res = QgsProject.instance().readNumEntry("Digitizing", "/TopologicalEditing", value);
     if res is not None and res[1]:
