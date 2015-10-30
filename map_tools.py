@@ -939,7 +939,7 @@ class ArkFeatureAction(QAction):
         myDa = QgsDistanceArea()
 
         myDa.setSourceCrs(self._layer.crs())
-        myDa.setEllipsoidalMode(self._iface.mapCanvas().hasCrsTransformEnabled())
+        myDa.setEllipsoidalMode(self._iface.mapCanvas().mapSettings().hasCrsTransformEnabled())
         myDa.setEllipsoid(QgsProject.instance().readEntry('Measure', '/Ellipsoid', GEO_NONE)[0])
 
         context.setDistanceArea(myDa)
@@ -1005,25 +1005,22 @@ class ArkFeatureAction(QAction):
         fields = self._layer.pendingFields()
         self._feature.initAttributes(fields.count())
         for idx in range(0, fields.count()):
-            v = ''
+            v = None
 
             if (defaultAttributes.has_key(idx)):
                 v = defaultAttributes[idx]
-            elif (reuseLastValues and self._lastUsedValues.has_key(self._layer) and self._lastUsedValues[self._layer].has_key(idx)):
-                v = self._lastUsedValues[self._layer][idx]
+            elif (reuseLastValues and self._lastUsedValues.has_key(self._layer.id()) and self._lastUsedValues[self._layer.id()].has_key(idx)):
+                v = self._lastUsedValues[self._layer.id()][idx]
             else:
                 v = provider.defaultValue(idx)
 
             self._feature.setAttribute(idx, v)
 
         isDisabledAttributeValuesDlg = settings.value('/qgis/digitizing/disable_enter_attribute_values_dialog', False)
-        if (self._layer.featureFormSuppress() == QgsVectorLayer.SuppressOn):
+        if (fields.count() == 0 or self._layer.featureFormSuppress() == QgsVectorLayer.SuppressOn):
             isDisabledAttributeValuesDlg = True
         elif (self._layer.featureFormSuppress() == QgsVectorLayer.SuppressOff):
             isDisabledAttributeValuesDlg = False
-
-        #TODO Set to disabled as not all required dialog api exposed in Python!!!
-        isDisabledAttributeValuesDlg = True
 
         if (isDisabledAttributeValuesDlg):
             self._layer.beginEditCommand(self.text())
@@ -1051,16 +1048,14 @@ class ArkFeatureAction(QAction):
         return self._featureSaved;
 
     def _onFeatureSaved(self, feature):
-        form = self.sender()
         self._featureSaved = True
 
-        settings = QSettings()
-        reuseLastValues = settings.value('/qgis/digitizing/reuseLastValues', False)
+        reuseLastValues = QSettings().value('/qgis/digitizing/reuseLastValues', False)
 
         if (reuseLastValues):
             fields = self._layer.pendingFields()
             for idx in range(0, fields.count() - 1):
                 newValues = feature.attributes()
-                origValues = self._lastUsedValues[self._layer]
+                origValues = self._lastUsedValues[self._layer.id()]
                 if (origValues[idx] != newValues[idx]):
-                    self._lastUsedValues[self._layer][idx] = newValues[idx]
+                    self._lastUsedValues[self._layer.id()][idx] = newValues[idx]
