@@ -32,6 +32,14 @@ from qgis.gui import QgsMessageBar
 def timestamp():
     return QDateTime.currentDateTimeUtc().toString(Qt.ISODate)
 
+# String utilities
+
+def quote(string):
+    return "'" + string + "'"
+
+def doublequote(string):
+    return '"' + string + '"'
+
 # Message utilities
 
 def showMessage(iface, text, level=QgsMessageBar.INFO, duration=0):
