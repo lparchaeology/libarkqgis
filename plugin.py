@@ -50,7 +50,7 @@ class Plugin(QObject):
     actions = []
     toolbar = None  # QToolBar()
 
-    def __init__(self, iface, pluginName, pluginIconPath, pluginPath, menuType):
+    def __init__(self, iface, pluginName, pluginIconPath, pluginPath, menuType, parent=None):
         """Constructor.
 
         :param iface: An interface instance that will be passed to this class
@@ -70,6 +70,7 @@ class Plugin(QObject):
         :param menuType: The menu type to add the plugin to.
         :type menuType: int
         """
+        super(Plugin, self).__init__(parent)
         self.iface = iface
         self.pluginName = pluginName
         self.pluginPath = pluginPath
