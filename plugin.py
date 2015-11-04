@@ -204,8 +204,9 @@ class Plugin(QObject):
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-        # Reimplement in inplementation
-        pass
+        # Reimplement and call in inplementation
+        # Unload in case plugin crash durign reload left remnants behind
+        Plugin.unload(self)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
