@@ -1,17 +1,9 @@
 <RCC>
     <qresource prefix="/plugins/Ark" >
-        <file>resources/iconSnapVertex.png</file>
-    </qresource>
-    <qresource prefix="/plugins/Ark" >
-        <file>resources/iconSnapSegment.png</file>
-    </qresource>
-    <qresource prefix="/plugins/Ark" >
-        <file>resources/iconSnapVertexSegment.png</file>
-    </qresource>
-    <qresource prefix="/plugins/Ark" >
-        <file>resources/snap-intersection.png</file>
-    </qresource>
-    <qresource prefix="/plugins/Ark" >
-        <file>resources/draw-bezier-curves.png</file>
+        <file alias="snapVertex.png">resources/iconSnapVertex.png</file>
+        <file alias="snapSegment.png">resources/iconSnapSegment.png</file>
+        <file alias="snapVertexSegment.png">resources/iconSnapVertexSegment.png</file>
+        <file alias="snapIntersections.png">resources/snap-intersection.png</file>
+        <file alias="topologicalEditing.png">resources/draw-bezier-curves.png</file>
     </qresource>
 </RCC>

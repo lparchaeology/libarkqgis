@@ -175,7 +175,7 @@ class TopologicalEditingAction(QAction):
         super(TopologicalEditingAction, self).__init__(parent)
 
         self.setCheckable(True)
-        self._icon = QIcon(':/plugins/Ark/draw-bezier-curves.png')
+        self._icon = QIcon(':/plugins/Ark/topologicalEditing.png')
         self.setIcon(self._icon)
         self.setText('Topological Editing')
 
@@ -213,7 +213,7 @@ class IntersectionSnappingAction(QAction):
         super(IntersectionSnappingAction, self).__init__(parent)
 
         self.setCheckable(True)
-        self._icon = QIcon(':/plugins/Ark/snap-intersection.png')
+        self._icon = QIcon(':/plugins/Ark/snapIntersections.png')
         self.setIcon(self._icon)
         self.setText('Intersection Snapping')
 
@@ -467,17 +467,17 @@ class SnappingToolButton(QToolButton):
         #Disable until we have a _layerId
         self.setEnabled(False)
 
-        self._vertexIcon = QIcon(':/plugins/Ark/iconSnapVertex.png')
+        self._vertexIcon = QIcon(':/plugins/Ark/snapVertex.png')
         self._vertexAction = QAction(self._vertexIcon, 'Vertex', self)
         self._vertexAction.setStatusTip('Snap to vertex')
         self._vertexAction.setCheckable(True)
 
-        self._segmentIcon = QIcon(':/plugins/Ark/iconSnapSegment.png')
+        self._segmentIcon = QIcon(':/plugins/Ark/snapSegment.png')
         self._segmentAction = QAction(self._segmentIcon, 'Segment', self)
         self._segmentAction.setStatusTip('Snap to segment')
         self._segmentAction.setCheckable(True)
 
-        self._vertexSegmentIcon = QIcon(':/plugins/Ark/iconSnapVertexSegment.png')
+        self._vertexSegmentIcon = QIcon(':/plugins/Ark/snapVertexSegment.png')
         self._vertexSegmentAction = QAction(self._vertexSegmentIcon, 'Vertex and Segment', self)
         self._vertexSegmentAction.setStatusTip('Snap to vertex and segment')
         self._vertexSegmentAction.setCheckable(True)
