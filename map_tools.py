@@ -60,6 +60,15 @@ capture_point_cursor_xpm = [
 capture_point_cursor = QCursor(QPixmap(capture_point_cursor_xpm), 8, 8)
 
 
+class FeatureType():
+
+    NoFeature = 0
+    Point = 1
+    Segment = 2
+    Line = 3
+    Polygon = 4
+
+
 class ArkMapToolIndentifyFeatures(QgsMapToolIdentify):
 
     featureIdentified = pyqtSignal(QgsFeature)
@@ -617,12 +626,6 @@ class ArkMapToolCapture(ArkMapToolInteractive):
 
 class ArkMapToolAddFeature(ArkMapToolCapture):
 
-    NoFeature = 0
-    Point = 1
-    Segment = 2
-    Line = 3
-    Polygon = 4
-
     _layer = None  # QgsVectorLayer()
     _featureType = 0  # NoFeature
     _defaultAttributes = {}  # QMap<int, QList<QVariant> >
@@ -644,15 +647,15 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
         super(ArkMapToolAddFeature, self).__init__(iface, geometryType)
         self._layer = layer
 
-        if (featureType == ArkMapToolAddFeature.NoFeature):
+        if (featureType == FeatureType.NoFeature):
             if (geometryType == QGis.Point):
-                self._featureType = ArkMapToolAddFeature.Point
+                self._featureType = FeatureType.Point
             elif (geometryType == QGis.Line):
-                self._featureType = ArkMapToolAddFeature.Line
+                self._featureType = FeatureType.Line
             elif (geometryType == QGis.Polygon):
-                self._featureType = ArkMapToolAddFeature.Polygon
+                self._featureType = FeatureType.Polygon
             else:
-                self._featureType = ArkMapToolAddFeature.NoFeature
+                self._featureType = FeatureType.NoFeature
         else:
             self._featureType = featureType
 
@@ -693,13 +696,13 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
         super(ArkMapToolAddFeature, self).canvasReleaseEvent(e)
         if (e.isAccepted()):
             return
-        if (self._featureType == ArkMapToolAddFeature.Point):
+        if (self._featureType == FeatureType.Point):
             if (e.button() == Qt.LeftButton):
                 self._addFeature()
                 e.accept()
         else:
             if (e.button() == Qt.LeftButton):
-                if (self._featureType == ArkMapToolAddFeature.Segment and len(self._mapPointList) == 2):
+                if (self._featureType == FeatureType.Segment and len(self._mapPointList) == 2):
                     self._addFeature()
             elif (e.button() == Qt.RightButton):
                 self._addFeature()
@@ -712,19 +715,19 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
 
     def addFeature(self, featureType, mapPointList, attributes, layer):
         #points: bail out if there is not exactly one vertex
-        if (featureType == ArkMapToolAddFeature.Point and len(mapPointList) != 1):
+        if (featureType == FeatureType.Point and len(mapPointList) != 1):
             return False
 
         #segments: bail out if there are not exactly two vertices
-        if (featureType == ArkMapToolAddFeature.Segment and len(mapPointList) != 2):
+        if (featureType == FeatureType.Segment and len(mapPointList) != 2):
             return False
 
         #lines: bail out if there are not at least two vertices
-        if (featureType == ArkMapToolAddFeature.Line and len(mapPointList) < 2):
+        if (featureType == FeatureType.Line and len(mapPointList) < 2):
             return False
 
         #polygons: bail out if there are not at least three vertices
-        if (featureType == ArkMapToolAddFeature.Polygon and len(mapPointList) < 3):
+        if (featureType == FeatureType.Polygon and len(mapPointList) < 3):
             return False
 
         if (layer.type() != QgsMapLayer.VectorLayer):
@@ -766,7 +769,7 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
             return False
         feature.setGeometry(geometry)
 
-        if (featureType == ArkMapToolAddFeature.Polygon):
+        if (featureType == FeatureType.Polygon):
 
             avoidIntersectionsReturn = feature.geometry().avoidIntersections()
             if (avoidIntersectionsReturn == 1):
@@ -786,7 +789,7 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
 
         featureSaved = self._addFeatureAction(feature, attributes, layer, False)
 
-        if (featureSaved and featureType != ArkMapToolAddFeature.Point):
+        if (featureSaved and featureType != FeatureType.Point):
             #add points to other features to keep topology up-to-date
             topologicalEditing = snapping.topologicalEditing()
 
@@ -885,7 +888,7 @@ class ArkMapToolAddBaseline(ArkMapToolAddFeature):
             self._capturePointData()
         elif (e.button() == Qt.RightButton):
             for mapPoint in mapPointList:
-                self.addFeature(ArkMapToolAddFeature.Point, [mapPoint], self._pointLayer)
+                self.addFeature(FeatureType.Point, [mapPoint], self._pointLayer)
 
     def _capturePointData(self):
         if self._pointQueryField:
@@ -902,7 +905,7 @@ class ArkMapToolAddBaseline(ArkMapToolAddFeature):
             if self._pointQueryField:
                 idx = self._pointLayer.pendingFields().fieldNameIndex(self._pointQueryField.name())
                 self._pointAttributes[idx] = self._pointQueryValues[i]
-            self.addFeature(ArkMapToolAddFeature.Point, [mapPointList[i]], self._pointLayer)
+            self.addFeature(FeatureType.Point, [mapPointList[i]], self._pointLayer)
 
 
 # TODO Clean up this and fix dialog problems
