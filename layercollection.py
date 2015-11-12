@@ -344,7 +344,7 @@ class LayerCollection:
 
 
     def _applyLayerFilter(self, layer, filter):
-        if (layer is None):
+        if (layer is None or not layer.isValid()):
             return
         if (self._iface.mapCanvas().isDrawing()):
             utils.showMessage(self._iface, 'Cannot apply filter: Canvas is drawing')
@@ -374,6 +374,8 @@ class LayerCollection:
 
 
     def _applyLayerSelection(self, layer, expression):
+        if layer is None or not layer.isValid():
+            return
         fit = layer.getFeatures(QgsFeatureRequest().setFilterExpression(expression))
         layer.setSelectedFeatures([f.id() for f in fit])
 
