@@ -34,7 +34,7 @@ TopoEditToolButton: A button to configure topological editing for a project.
 from PyQt4.QtCore import Qt, pyqtSignal, QSettings
 from PyQt4.QtGui import QToolButton, QMenu, QIcon, QAction, QActionGroup, QWidgetAction, QDoubleSpinBox, QComboBox
 
-from qgis.core import QGis, QgsTolerance, QgsProject, QgsSnapper, QgsMapLayer, QgsMessageLog
+from qgis.core import QGis, QgsTolerance, QgsProject, QgsSnapper, QgsMapLayer, QgsMessageLog, QgsMapLayerRegistry
 from qgis.gui import QgsMessageBar
 
 import resources_rc
@@ -445,6 +445,7 @@ class SnappingToolButton(QToolButton):
     snapSettingsChanged = pyqtSignal(str, bool, QgsSnapper.SnappingType, QgsTolerance.UnitType, float, bool)
 
     _layer = None
+    _layerId = ''
     _snapEnabled = False
     _snappingType = QgsSnapper.SnapToVertex
     _unitType = QgsTolerance.Pixels
@@ -533,6 +534,7 @@ class SnappingToolButton(QToolButton):
         self._project.snapSettingsChanged.connect(self.updateButton)
         # If a new _project is read then layer is no longer valid
         self._project.readProject.connect(self.disableButton)
+        QgsMapLayerRegistry.instance().layerRemoved.connect(self._layerRemoved)
 
     # Public API
 
@@ -548,18 +550,24 @@ class SnappingToolButton(QToolButton):
         """
         if (layer is None):
             self._layer = None
+            self._layerId = ''
             self.setEnabled(False)
             self._snapEnabled = False
             self._refreshButton()
         elif (layer.isValid() and layer.type() == QgsMapLayer.VectorLayer):
             self._layer = layer
+            self._layerId = layer.id()
             self.setEnabled(True)
             self._avoidAction.setEnabled(layer.geometryType() == QGis.Polygon)
             self.updateButton()
 
+    def _layerRemoved(self, layerId):
+        if layerId == self._layerId:
+            self.disableButton()
+
     def updateButton(self):
         """Updates the button with the current snapping settings."""
-        if (self._layer is None):
+        if (self._layer is None or not self._layer.isValid()):
             return
         ok, self._snapEnabled, self._snappingType, self._unitType, self._tolerance, self._avoidIntersections = self._project.snapSettingsForLayer(self._layer.id())
         self._refreshButton()
@@ -581,22 +589,24 @@ class SnappingToolButton(QToolButton):
 
         self.setChecked(self._snapEnabled)
 
-        if (self._snappingType == QgsSnapper.SnapToVertex):
-            self.setIcon(self._vertexIcon)
-            self._vertexAction.setChecked(True)
-        elif (self._snappingType == QgsSnapper.SnapToSegment):
+        if (self._snappingType == QgsSnapper.SnapToSegment):
             self.setIcon(self._segmentIcon)
             self._segmentAction.setChecked(True)
         elif (self._snappingType == QgsSnapper.SnapToVertexAndSegment):
             self.setIcon(self._vertexSegmentIcon)
             self._vertexSegmentAction.setChecked(True)
+        else: # QgsSnapper.SnapToVertex or undefined
+            self.setIcon(self._vertexIcon)
+            self._vertexAction.setChecked(True)
 
         if (self._unitType == QgsTolerance.Pixels):
             self._pixelUnitsAction.setChecked(True)
             self._toleranceSpin.setSuffix(' px')
         else:
             self._layerUnitsAction.setChecked(True)
-            layerUnits = self._layer.crs().mapUnits()
+            layerUnits = QGis.Meters
+            if self._layer is not None:
+                layerUnits = self._layer.crs().mapUnits()
             suffix = _unitToSuffix(layerUnits)
             self._toleranceSpin.setSuffix(suffix)
 
