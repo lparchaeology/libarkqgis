@@ -24,6 +24,7 @@
 
 from PyQt4.QtCore import pyqtSignal
 from PyQt4.QtGui import QDialog, QComboBox, QDialogButtonBox
+from PyQt4.QtXml import QDomImplementation, QDomDocument
 
 from qgis.core import QGis, QgsMapLayer, QgsMapLayerRegistry, QgsVectorLayer, QgsVectorFileWriter
 
@@ -111,7 +112,7 @@ def createShapefile(filePath, wkbType, crs, fields):
     del layer
     return error
 
-def createMemoryLayer(name, wkbType, crsId, fields=None, styleURI=None):
+def createMemoryLayer(name, wkbType, crsId, fields=None, styleURI=None, symbology=None):
     uri = wkbToMemoryType(wkbType) + "?crs=" + crsId + "&index=yes"
     mem = QgsVectorLayer(uri, name, 'memory')
     if (mem is not None and mem.isValid()):
@@ -121,14 +122,38 @@ def createMemoryLayer(name, wkbType, crsId, fields=None, styleURI=None):
             mem.dataProvider().addAttributes([QgsField('id', QVariant.String, '', 10, 0, 'ID')])
         if styleURI:
             mem.loadNamedStyle(styleURI)
+        if symbology:
+            mem.readSymbology(symbology, '')
     return mem
 
-def cloneAsMemoryLayer(layer, name, styleURI=None):
+def cloneAsMemoryLayer(layer, name, styleURI=None, symbology=None):
     if (layer is not None and layer.isValid() and layer.type() == QgsMapLayer.VectorLayer):
-        if not styleURI:
-            styleURI = layer.styleURI()
-        return createMemoryLayer(name, layer.wkbType(), layer.crs().authid(), layer.dataProvider().fields(), styleURI)
+        if styleURI is None and symbology is None:
+            symbology = getSymbology(layer)
+        return createMemoryLayer(name, layer.wkbType(), layer.crs().authid(), layer.dataProvider().fields(), styleURI, symbology)
     return None
+
+def duplicateAsMemoryLayer(layer, memName):
+    mem = cloneAsMemoryLayer(layer, memName)
+    mem.startEditing()
+    fi = layer.getFeatures()
+    for feature in fi:
+        mem.addFeature(feature)
+    mem.commitChanges()
+    return mem
+
+def getSymbology(source):
+    di = QDomImplementation()
+    documentType = di.createDocumentType('qgis', 'http://mrcc.com/qgis.dtd', 'SYSTEM')
+    doc = QDomDocument(documentType)
+    rootNode = doc.createElement('qgis')
+    rootNode.setAttribute('version', str(QGis.QGIS_VERSION))
+    doc.appendChild(rootNode)
+    source.writeSymbology(rootNode, doc, '')
+    return rootNode
+
+def copySymbology(source, dest):
+    dest.readSymbology(getSymbology(source), '')
 
 def getGroupIndex(iface, groupName):
     groupIndex = -1
