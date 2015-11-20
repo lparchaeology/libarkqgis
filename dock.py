@@ -41,7 +41,7 @@ class ArkDockWidget(QDockWidget):
     def __init__(self, iface, parent=None):
         super(ArkDockWidget, self).__init__(parent)
 
-    def load(self, iface, location, menuAction):
+    def initGui(self, iface, location, menuAction):
         self._iface = iface
         self._dockLocation = location
 
@@ -52,7 +52,7 @@ class ArkDockWidget(QDockWidget):
         self.visibilityChanged.connect(self._menuAction.setChecked)
         self.dockLocationChanged.connect(self._updateDockLocation)
 
-    def unload(self):
+    def unloadGui(self):
         self._iface.removeToolBarIcon(self._menuAction)
         self._iface.removeDockWidget(self)
         self.deleteLater()
