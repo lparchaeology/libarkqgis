@@ -26,7 +26,8 @@ from sets import Set
 
 from PyQt4.QtCore import QVariant, QDir
 
-from qgis.core import *
+from qgis.core import QGis, QgsMapLayerRegistry, QgsVectorLayer, QgsProject, QgsSnapper, QgsTolerance, QgsMapLayer, QgsFeatureRequest
+from qgis.gui import QgsMessageBar
 
 import utils, layers, snapping
 
@@ -345,19 +346,19 @@ class LayerCollection:
             return
         self._iface.mapCanvas().stopRendering()
         if (layer.type() != QgsMapLayer.VectorLayer):
-            utils.showMessage(self._iface, 'Cannot apply filter: Not a vector layer')
+            utils.showMessage(self._iface, 'Cannot apply filter: Not a vector layer', QgsMessageBar.WARNING, 3)
             return
         if (layer.isEditable()):
-            utils.showMessage(self._iface, 'Cannot apply filter: Layer is in editing mode')
+            utils.showMessage(self._iface, 'Cannot apply filter: Layer is in editing mode', QgsMessageBar.WARNING, 3)
             return
         if (not layer.dataProvider().supportsSubsetString()):
-            utils.showMessage(self._iface, 'Cannot apply filter: Subsets not supported by layer')
+            utils.showMessage(self._iface, 'Cannot apply filter: Subsets not supported by layer', QgsMessageBar.WARNING, 3)
             return
         if (len(layer.vectorJoins()) > 0):
-            utils.showMessage(self._iface, 'Cannot apply filter: Layer has joins')
+            utils.showMessage(self._iface, 'Cannot apply filter: Layer has joins', QgsMessageBar.WARNING, 3)
             return
         if (self._iface.mapCanvas().isDrawing()):
-            utils.showMessage(self._iface, 'Cannot apply filter: Canvas is drawing')
+            utils.showMessage(self._iface, 'Cannot apply filter: Canvas is drawing', QgsMessageBar.WARNING, 3)
             return
         layer.setSubsetString(filter)
         self._iface.mapCanvas().refresh()
