@@ -343,9 +343,7 @@ class LayerCollection:
     def _applyLayerFilter(self, layer, filter):
         if (layer is None or not layer.isValid()):
             return
-        if (self._iface.mapCanvas().isDrawing()):
-            utils.showMessage(self._iface, 'Cannot apply filter: Canvas is drawing')
-            return
+        self._iface.mapCanvas().stopRendering()
         if (layer.type() != QgsMapLayer.VectorLayer):
             utils.showMessage(self._iface, 'Cannot apply filter: Not a vector layer')
             return
@@ -357,6 +355,9 @@ class LayerCollection:
             return
         if (len(layer.vectorJoins()) > 0):
             utils.showMessage(self._iface, 'Cannot apply filter: Layer has joins')
+            return
+        if (self._iface.mapCanvas().isDrawing()):
+            utils.showMessage(self._iface, 'Cannot apply filter: Canvas is drawing')
             return
         layer.setSubsetString(filter)
         self._iface.mapCanvas().refresh()
