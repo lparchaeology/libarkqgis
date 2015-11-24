@@ -26,7 +26,7 @@ from sets import Set
 
 from PyQt4.QtCore import QVariant, QDir
 
-from qgis.core import QGis, QgsMapLayerRegistry, QgsVectorLayer, QgsProject, QgsSnapper, QgsTolerance, QgsMapLayer, QgsFeatureRequest
+from qgis.core import QGis, QgsMapLayerRegistry, QgsVectorLayer, QgsProject, QgsSnapper, QgsTolerance, QgsMapLayer, QgsFeatureRequest, QgsRectangle
 from qgis.gui import QgsMessageBar
 
 import utils, layers, snapping

@@ -41,6 +41,18 @@ import resources_rc
 
 # Project setting utilities
 
+class Snapping():
+
+    # SnappingMode
+    CurrentLayer = 0
+    AllLayers = 1
+    SelectedLayers = 2
+
+    # SnappingType
+    Vertex = 0
+    Segment = 1
+    VertexAndSegment = 2
+
 def projectSnappingMode(defaultValue='current_layer'):
     res = QgsProject.instance().readEntry("Digitizing", "/SnappingMode", defaultValue);
     if res is not None and res[1]:
@@ -261,6 +273,7 @@ class SnappingModeTool(QToolButton):
         """
 
         super(SnappingModeTool, self).__init__(parent)
+        self.setCheckable(True)
         self.setPopupMode(QToolButton.MenuButtonPopup)
 
         self._project = QgsProject.instance()
@@ -305,6 +318,7 @@ class SnappingModeTool(QToolButton):
     # Private API
 
     def _snappingToggled(self, checked):
+        QgsMessageLog.logMessage('_snappingToggled(' + str(checked) + ')', 'ArkPlan', QgsMessageLog.INFO)
         if checked:
             setProjectSnappingType(self._prevType)
             if self._advancedOff:
@@ -333,9 +347,11 @@ class SnappingModeTool(QToolButton):
         self.snapSettingsChanged.emit()
 
     def _refresh(self):
+        QgsMessageLog.logMessage('_refresh()', 'ArkPlan', QgsMessageLog.INFO)
         self._advancedOff = False
         self._prevType = projectSnappingType()
-        #self.setChecked(self._prevType != 'off')
+        QgsMessageLog.logMessage('type = ' + str(self._prevType), 'ArkPlan', QgsMessageLog.INFO)
+        self.setChecked(self._prevType != 'off')
         snapMode = projectSnappingMode()
         if snapMode == 'current_layer':
             self._setActiveAction(self._currentAction)
@@ -346,7 +362,7 @@ class SnappingModeTool(QToolButton):
 
     def _setActiveAction(self, action):
         action.setChecked(True)
-        self.setDefaultAction(action)
+        self.setIcon(action.icon())
 
 
 class SnappingModeCombo(QComboBox):
