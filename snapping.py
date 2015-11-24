@@ -348,10 +348,14 @@ class SnappingModeTool(QToolButton):
 
     def _refresh(self):
         QgsMessageLog.logMessage('_refresh()', 'ArkPlan', QgsMessageLog.INFO)
-        self._advancedOff = False
-        self._prevType = projectSnappingType()
+        prev = projectSnappingType()
+        if prev == 'off':
+            self.setChecked(False)
+        else:
+            self._advancedOff = False
+            self._prevType = prev
+            self.setChecked(True)
         QgsMessageLog.logMessage('type = ' + str(self._prevType), 'ArkPlan', QgsMessageLog.INFO)
-        self.setChecked(self._prevType != 'off')
         snapMode = projectSnappingMode()
         if snapMode == 'current_layer':
             self._setActiveAction(self._currentAction)
