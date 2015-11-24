@@ -238,6 +238,117 @@ class IntersectionSnappingAction(QAction):
 
 # Snapping Widgets
 
+class SnappingModeTool(QToolButton):
+
+    """Tool button to change snapping mode
+
+    Signals:
+            snapSettingsChanged(): Signal that the snapping settings has been changed by the button
+    """
+
+    snapSettingsChanged = pyqtSignal()
+
+    _project = None # QgsProject()
+    _advancedOff = False
+    _prevType = ''
+
+    def __init__(self, parent=None):
+        """
+        Initialises the snapping mode button
+
+        Args:
+            parent (QWidget): The parent widget, defaults to None.
+        """
+
+        super(SnappingModeTool, self).__init__(parent)
+        self.setPopupMode(QToolButton.MenuButtonPopup)
+
+        self._project = QgsProject.instance()
+
+        self._currentIcon = QIcon(':/plugins/Ark/snapVertex.png')
+        self._currentAction = QAction(self._currentIcon, 'Current Layer', self)
+        self._currentAction.setStatusTip('Snap to current layer')
+        self._currentAction.setCheckable(True)
+
+        self._allIcon = QIcon(':/plugins/Ark/snapSegment.png')
+        self._allAction = QAction(self._allIcon, 'All Layers', self)
+        self._allAction.setStatusTip('Snap to all layers')
+        self._allAction.setCheckable(True)
+
+        self._selectedIcon = QIcon(':/plugins/Ark/snapVertexSegment.png')
+        self._selectedAction = QAction(self._selectedIcon, 'Vertex and Segment', self)
+        self._selectedAction.setStatusTip('Snap to selected layers')
+        self._selectedAction.setCheckable(True)
+
+        self._snappingModeActionGroup = QActionGroup(self)
+        self._snappingModeActionGroup.addAction(self._currentAction)
+        self._snappingModeActionGroup.addAction(self._allAction)
+        self._snappingModeActionGroup.addAction(self._selectedAction)
+
+        self._menu = QMenu(self)
+        self._menu.addActions(self._snappingModeActionGroup.actions())
+        self.setMenu(self._menu)
+
+        self._refresh()
+
+        self.toggled.connect(self._snappingToggled)
+        self._currentAction.triggered.connect(self._snapCurrentLayer)
+        self._allAction.triggered.connect(self._snapAllLayers)
+        self._selectedAction.triggered.connect(self._snapSelectedLayers)
+
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+        self.snapSettingsChanged.connect(self._project.snapSettingsChanged)
+
+    # Private API
+
+    def _snappingToggled(self, checked):
+        if checked:
+            setProjectSnappingType(self._prevType)
+            if self._advancedOff:
+                setProjectSnappingMode('advanced')
+                self._advancedOff = False
+        else:
+            self._prevType = projectSnappingType()
+            setProjectSnappingType('off')
+            if projectSnappingMode() == 'advanced':
+                self._advancedOff = True
+                setProjectSnappingMode('current_layer')
+        self.snapSettingsChanged.emit()
+
+    def _snapCurrentLayer(self):
+        self._advancedOff = False
+        setProjectSnappingMode('current_layer')
+        self.snapSettingsChanged.emit()
+
+    def _snapAllLayers(self):
+        self._advancedOff = False
+        setProjectSnappingMode('all_layers')
+        self.snapSettingsChanged.emit()
+
+    def _snapSelectedLayers(self):
+        setProjectSnappingMode('advanced')
+        self.snapSettingsChanged.emit()
+
+    def _refresh(self):
+        self._advancedOff = False
+        self._prevType = projectSnappingType()
+        #self.setChecked(self._prevType != 'off')
+        snapMode = projectSnappingMode()
+        if snapMode == 'current_layer':
+            self._setActiveAction(self._currentAction)
+        elif snapMode == 'all_layers':
+            self._setActiveAction(self._allAction)
+        elif snapMode == 'advanced':
+            self._setActiveAction(self._selectedAction)
+
+    def _setActiveAction(self, action):
+        action.setChecked(True)
+        self.setDefaultAction(action)
+
+
 class SnappingModeCombo(QComboBox):
 
     snappingModeChanged = pyqtSignal(str)
