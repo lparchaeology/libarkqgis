@@ -170,6 +170,49 @@ def intersectionLayers(defaultValue=[]):
         return defaultValue
 
 
+def layerSnappingEnabled(layerId):
+    layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
+    enabledList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingEnabledList")
+    try:
+        idx = layerIdList.index(layerId)
+        return enabledList[idx] == 'enabled'
+    except:
+        pass
+    return False
+
+def setLayerSnappingEnabled(layerId, enabled):
+    layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
+    enabledList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingEnabledList")
+    try:
+        idx = layerIdList.index(layerId)
+        if enabled:
+            enabledList[idx] = 'enabled'
+        else:
+            enabledList[idx] = 'disabled'
+        QgsProject.instance().writeEntry("Digitizing", "/LayerSnappingEnabledList", enabledList)
+    except:
+        pass
+
+def layerSnappingEnabledLayers():
+    enabledLayers = []
+    layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
+    enabledList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingEnabledList")
+    for idx in range(0, len(layerIdList)):
+        if enabledList[idx] == 'enabled':
+            enabledLayers.append(layerIdList[idx])
+    return enabledLayers
+
+def setLayerSnappingEnabledLayers(enabledLayers):
+    enabledList = []
+    layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
+    for layerId in layerIdList:
+        if layerId in enabledLayers:
+            enabledList.append('enabled')
+        else:
+            enabledList.append('disabled')
+    QgsProject.instance().writeEntry("Digitizing", "/LayerSnappingEnabledList", enabledList)
+
+
 # Snapping Actions
 
 class TopologicalEditingAction(QAction):
@@ -261,8 +304,9 @@ class SnappingModeTool(QToolButton):
     snapSettingsChanged = pyqtSignal()
 
     _project = None # QgsProject()
-    _advancedOff = False
-    _prevType = ''
+    _selectedLayers = []
+    _prevType = 'off'
+    _ignoreRefresh = False
 
     def __init__(self, parent=None):
         """
@@ -278,18 +322,18 @@ class SnappingModeTool(QToolButton):
 
         self._project = QgsProject.instance()
 
-        self._currentIcon = QIcon(':/plugins/Ark/snapVertex.png')
+        self._currentIcon = QIcon(':/plugins/Ark/snapLayerCurrent.png')
         self._currentAction = QAction(self._currentIcon, 'Current Layer', self)
         self._currentAction.setStatusTip('Snap to current layer')
         self._currentAction.setCheckable(True)
 
-        self._allIcon = QIcon(':/plugins/Ark/snapSegment.png')
+        self._allIcon = QIcon(':/plugins/Ark/snapLayerAll.png')
         self._allAction = QAction(self._allIcon, 'All Layers', self)
         self._allAction.setStatusTip('Snap to all layers')
         self._allAction.setCheckable(True)
 
-        self._selectedIcon = QIcon(':/plugins/Ark/snapVertexSegment.png')
-        self._selectedAction = QAction(self._selectedIcon, 'Vertex and Segment', self)
+        self._selectedIcon = QIcon(':/plugins/Ark/snapLayerSelected.png')
+        self._selectedAction = QAction(self._selectedIcon, 'Selected Layers', self)
         self._selectedAction.setStatusTip('Snap to selected layers')
         self._selectedAction.setCheckable(True)
 
@@ -318,51 +362,57 @@ class SnappingModeTool(QToolButton):
     # Private API
 
     def _snappingToggled(self, checked):
-        QgsMessageLog.logMessage('_snappingToggled(' + str(checked) + ')', 'ArkPlan', QgsMessageLog.INFO)
         if checked:
-            setProjectSnappingType(self._prevType)
-            if self._advancedOff:
-                setProjectSnappingMode('advanced')
-                self._advancedOff = False
-        else:
-            self._prevType = projectSnappingType()
-            setProjectSnappingType('off')
             if projectSnappingMode() == 'advanced':
-                self._advancedOff = True
-                setProjectSnappingMode('current_layer')
+                setLayerSnappingEnabledLayers(self._selectedLayers)
+            else:
+                setProjectSnappingType(self._prevType)
+        else:
+            if projectSnappingMode() == 'advanced':
+                self._selectedLayers = layerSnappingEnabledLayers()
+                setLayerSnappingEnabledLayers([])
+            else:
+                self._prevType = projectSnappingType()
+                setProjectSnappingType('off')
+        self._ignoreRefresh = True
         self.snapSettingsChanged.emit()
 
     def _snapCurrentLayer(self):
-        self._advancedOff = False
         setProjectSnappingMode('current_layer')
+        self._ignoreRefresh = True
         self.snapSettingsChanged.emit()
 
     def _snapAllLayers(self):
-        self._advancedOff = False
         setProjectSnappingMode('all_layers')
+        self._ignoreRefresh = True
         self.snapSettingsChanged.emit()
 
     def _snapSelectedLayers(self):
         setProjectSnappingMode('advanced')
+        self._ignoreRefresh = True
         self.snapSettingsChanged.emit()
 
     def _refresh(self):
-        QgsMessageLog.logMessage('_refresh()', 'ArkPlan', QgsMessageLog.INFO)
-        prev = projectSnappingType()
-        if prev == 'off':
-            self.setChecked(False)
-        else:
-            self._advancedOff = False
-            self._prevType = prev
-            self.setChecked(True)
-        QgsMessageLog.logMessage('type = ' + str(self._prevType), 'ArkPlan', QgsMessageLog.INFO)
+        if self._ignoreRefresh:
+            self._ignoreRefresh = False
+            return
+        self.blockSignals(True)
         snapMode = projectSnappingMode()
-        if snapMode == 'current_layer':
-            self._setActiveAction(self._currentAction)
-        elif snapMode == 'all_layers':
-            self._setActiveAction(self._allAction)
-        elif snapMode == 'advanced':
+        snapType = projectSnappingType()
+        if snapType != 'off':
+            self._prevType = snapType
+        self._selectedLayers = layerSnappingEnabledLayers()
+        if snapMode == 'advanced':
+            enabled = (len(self._selectedLayers) > 0)
+            self.setChecked(enabled)
             self._setActiveAction(self._selectedAction)
+        else:
+            self.setChecked(snapType != 'off')
+            if snapMode == 'current_layer':
+                self._setActiveAction(self._currentAction)
+            elif snapMode == 'all_layers':
+                self._setActiveAction(self._allAction)
+        self.blockSignals(False)
 
     def _setActiveAction(self, action):
         action.setChecked(True)
@@ -718,6 +768,7 @@ class SnappingToolButton(QToolButton):
 
     def _refreshButton(self):
 
+        self.blockSignals(True)
         self.setChecked(self._snapEnabled)
 
         if (self._snappingType == QgsSnapper.SnapToSegment):
@@ -744,6 +795,7 @@ class SnappingToolButton(QToolButton):
         self._toleranceSpin.setValue(self._tolerance)
 
         self._avoidAction.setChecked(self._avoidIntersections)
+        self.blockSignals(False)
 
     def _snapToggled(self, _snapEnabled):
         self._snapEnabled = bool(_snapEnabled)
