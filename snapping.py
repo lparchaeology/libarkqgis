@@ -53,164 +53,178 @@ class Snapping():
     Segment = 1
     VertexAndSegment = 2
 
-def projectSnappingMode(defaultValue='current_layer'):
-    res = QgsProject.instance().readEntry("Digitizing", "/SnappingMode", defaultValue);
-    if res is not None and res[1]:
-        return res[0]
-    else:
-        return defaultValue
+    @staticmethod
+    def projectSnappingMode(defaultValue='current_layer'):
+        res = QgsProject.instance().readEntry("Digitizing", "/SnappingMode", defaultValue);
+        if res is not None and res[1]:
+            return res[0]
+        else:
+            return defaultValue
 
-def setProjectSnappingMode(mode='current_layer'):
-    return QgsProject.instance().writeEntry("Digitizing", "/SnappingMode", mode);
+    @staticmethod
+    def setProjectSnappingMode(mode='current_layer'):
+        return QgsProject.instance().writeEntry("Digitizing", "/SnappingMode", mode);
 
+    @staticmethod
+    def defaultSnapperType():
+        defaultSnappingTypeString = Snapping.defaultSnappingType()
+        if (defaultSnappingTypeString == "to vertex and segment" or defaultSnappingTypeString == "to_vertex_and_segment"):
+            return QgsSnapper.SnapToVertexAndSegment
+        elif (defaultSnappingTypeString == 'to segment' or defaultSnappingTypeString == 'to_segment'):
+            return QgsSnapper.SnapToSegment
+        return QgsSnapper.SnapToVertex
 
-def defaultSnapperType():
-    defaultSnappingTypeString = defaultSnappingType()
-    if (defaultSnappingTypeString == "to vertex and segment" or defaultSnappingTypeString == "to_vertex_and_segment"):
-        return QgsSnapper.SnapToVertexAndSegment
-    elif (defaultSnappingTypeString == 'to segment' or defaultSnappingTypeString == 'to_segment'):
-        return QgsSnapper.SnapToSegment
-    return QgsSnapper.SnapToVertex
+    @staticmethod
+    def defaultSnappingType(defaultValue='off'):
+        mode = QSettings().value('/qgis/digitizing/default_snap_mode', defaultValue, str)
+        if mode is None or mode == '':
+            mode = defaultValue
+        return mode
 
-def defaultSnappingType(defaultValue='off'):
-    mode = QSettings().value('/qgis/digitizing/default_snap_mode', defaultValue, str)
-    if mode is None or mode == '':
-        mode = defaultValue
-    return mode
+    @staticmethod
+    def projectSnappingType(defaultValue='off'):
+        defaultValue = Snapping.defaultSnappingType(defaultValue)
+        if defaultValue == 'to vertex':
+            defaultValue = 'to_vertex'
+        elif defaultValue == 'to segment':
+            defaultValue = 'to_segment'
+        elif defaultValue == 'to vertex and segment':
+            defaultValue = 'to_vertex_and_segment'
+        res = QgsProject.instance().readEntry("Digitizing", "/DefaultSnapType", defaultValue);
+        if res is not None and res[1]:
+            return res[0]
+        else:
+            return defaultValue
 
-def projectSnappingType(defaultValue='off'):
-    defaultValue = defaultSnappingType(defaultValue)
-    if defaultValue == 'to vertex':
-        defaultValue = 'to_vertex'
-    elif defaultValue == 'to segment':
-        defaultValue = 'to_segment'
-    elif defaultValue == 'to vertex and segment':
-        defaultValue = 'to_vertex_and_segment'
-    res = QgsProject.instance().readEntry("Digitizing", "/DefaultSnapType", defaultValue);
-    if res is not None and res[1]:
-        return res[0]
-    else:
-        return defaultValue
+    @staticmethod
+    def setProjectSnappingType(snapType='off'):
+        return QgsProject.instance().writeEntry("Digitizing", "/DefaultSnapType", snapType);
 
-def setProjectSnappingType(snapType='off'):
-    return QgsProject.instance().writeEntry("Digitizing", "/DefaultSnapType", snapType);
+    @staticmethod
+    def defaultSnappingUnit(defaultValue=QgsTolerance.ProjectUnits):
+        unit = QSettings().value('/qgis/digitizing/default_snapping_tolerance_unit', defaultValue, int)
+        # Huh???
+        if unit is None:
+            unit = defaultValue
+        return unit
 
+    @staticmethod
+    def projectSnappingUnit(defaultValue=QgsTolerance.ProjectUnits):
+        defaultValue = Snapping.defaultSnappingUnit(defaultValue)
+        res = QgsProject.instance().readNumEntry("Digitizing", "/DefaultSnapToleranceUnit", defaultValue);
+        if res is not None and res[1]:
+            return res[0]
+        else:
+            return defaultValue
 
-def defaultSnappingUnit(defaultValue=QgsTolerance.ProjectUnits):
-    unit = QSettings().value('/qgis/digitizing/default_snapping_tolerance_unit', defaultValue, int)
-    # Huh???
-    if unit is None:
-        unit = defaultValue
-    return unit
-
-def projectSnappingUnit(defaultValue=QgsTolerance.ProjectUnits):
-    defaultValue = defaultSnappingUnit(defaultValue)
-    res = QgsProject.instance().readNumEntry("Digitizing", "/DefaultSnapToleranceUnit", defaultValue);
-    if res is not None and res[1]:
-        return res[0]
-    else:
-        return defaultValue
-
-def setProjectSnappingUnit(unit=QgsTolerance.ProjectUnits):
-    return QgsProject.instance().writeEntry("Digitizing", "/DefaultSnapToleranceUnit", unit);
-
-
-def defaultSnappingTolerance(defaultValue=0.0):
-    tolerance = QSettings().value('/qgis/digitizing/default_snapping_tolerance', defaultValue, float)
-    # Huh???
-    if tolerance is None:
-        tolerance = defaultValue
-    return tolerance
-
-def projectSnappingTolerance(defaultValue=0.0):
-    defaultValue = defaultSnappingTolerance(defaultValue)
-    res = QgsProject.instance().readDoubleEntry("Digitizing", "/DefaultSnapTolerance", defaultValue);
-    if res is not None and res[1]:
-        return res[0]
-    else:
-        return defaultValue
-
-def setProjectSnappingTolerance(tolerance=0.0):
-    return QgsProject.instance().writeEntry("Digitizing", "/DefaultSnapTolerance", tolerance);
+    @staticmethod
+    def setProjectSnappingUnit(unit=QgsTolerance.ProjectUnits):
+        return QgsProject.instance().writeEntry("Digitizing", "/DefaultSnapToleranceUnit", unit);
 
 
-def topologicalEditing(defaultValue=True):
-    value = 0
-    if defaultValue:
-        value = 1
-    res = QgsProject.instance().readNumEntry("Digitizing", "/TopologicalEditing", value);
-    if res is not None and res[1]:
-        return res[0] > 0
-    else:
-        return defaultValue > 0
+    @staticmethod
+    def defaultSnappingTolerance(defaultValue=0.0):
+        tolerance = QSettings().value('/qgis/digitizing/default_snapping_tolerance', defaultValue, float)
+        # Huh???
+        if tolerance is None:
+            tolerance = defaultValue
+        return tolerance
 
+    @staticmethod
+    def projectSnappingTolerance(defaultValue=0.0):
+        defaultValue = Snapping.defaultSnappingTolerance(defaultValue)
+        res = QgsProject.instance().readDoubleEntry("Digitizing", "/DefaultSnapTolerance", defaultValue);
+        if res is not None and res[1]:
+            return res[0]
+        else:
+            return defaultValue
 
-def intersectionSnapping(defaultValue=True):
-    value = 0
-    if defaultValue:
-        value = 1
-    res = QgsProject.instance().readNumEntry("Digitizing", "/IntersectionSnapping", value);
-    if res is not None and res[1]:
-        return res[0] > 0
-    else:
-        return defaultValue > 0
+    @staticmethod
+    def setProjectSnappingTolerance(tolerance=0.0):
+        return QgsProject.instance().writeEntry("Digitizing", "/DefaultSnapTolerance", tolerance);
 
-def setIntersectionSnapping(enabled=True):
-    value = 0
-    if enabled:
-        value = 1
-    return QgsProject.instance().writeEntry("Digitizing", "/IntersectionSnapping", value);
+    @staticmethod
+    def topologicalEditing(defaultValue=True):
+        value = 0
+        if defaultValue:
+            value = 1
+        res = QgsProject.instance().readNumEntry("Digitizing", "/TopologicalEditing", value);
+        if res is not None and res[1]:
+            return res[0] > 0
+        else:
+            return defaultValue > 0
 
+    @staticmethod
+    def intersectionSnapping(defaultValue=True):
+        value = 0
+        if defaultValue:
+            value = 1
+        res = QgsProject.instance().readNumEntry("Digitizing", "/IntersectionSnapping", value);
+        if res is not None and res[1]:
+            return res[0] > 0
+        else:
+            return defaultValue > 0
 
-def intersectionLayers(defaultValue=[]):
-    res = QgsProject.instance().readListEntry("Digitizing", "/AvoidIntersectionsList", defaultValue);
-    if res is not None and res[1]:
-        return res[0]
-    else:
-        return defaultValue
-
-
-def layerSnappingEnabled(layerId):
-    layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
-    enabledList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingEnabledList")
-    try:
-        idx = layerIdList.index(layerId)
-        return enabledList[idx] == 'enabled'
-    except:
-        pass
-    return False
-
-def setLayerSnappingEnabled(layerId, enabled):
-    layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
-    enabledList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingEnabledList")
-    try:
-        idx = layerIdList.index(layerId)
+    @staticmethod
+    def setIntersectionSnapping(enabled=True):
+        value = 0
         if enabled:
-            enabledList[idx] = 'enabled'
+            value = 1
+        return QgsProject.instance().writeEntry("Digitizing", "/IntersectionSnapping", value);
+
+    @staticmethod
+    def intersectionLayers(defaultValue=[]):
+        res = QgsProject.instance().readListEntry("Digitizing", "/AvoidIntersectionsList", defaultValue);
+        if res is not None and res[1]:
+            return res[0]
         else:
-            enabledList[idx] = 'disabled'
+            return defaultValue
+
+    @staticmethod
+    def layerSnappingEnabled(layerId):
+        layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
+        enabledList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingEnabledList")
+        try:
+            idx = layerIdList.index(layerId)
+            return enabledList[idx] == 'enabled'
+        except:
+            pass
+        return False
+
+    @staticmethod
+    def setLayerSnappingEnabled(layerId, enabled):
+        layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
+        enabledList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingEnabledList")
+        try:
+            idx = layerIdList.index(layerId)
+            if enabled:
+                enabledList[idx] = 'enabled'
+            else:
+                enabledList[idx] = 'disabled'
+            QgsProject.instance().writeEntry("Digitizing", "/LayerSnappingEnabledList", enabledList)
+        except:
+            pass
+
+    @staticmethod
+    def layerSnappingEnabledLayers():
+        enabledLayers = []
+        layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
+        enabledList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingEnabledList")
+        for idx in range(0, len(layerIdList)):
+            if enabledList[idx] == 'enabled':
+                enabledLayers.append(layerIdList[idx])
+        return enabledLayers
+
+    @staticmethod
+    def setLayerSnappingEnabledLayers(enabledLayers):
+        enabledList = []
+        layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
+        for layerId in layerIdList:
+            if layerId in enabledLayers:
+                enabledList.append('enabled')
+            else:
+                enabledList.append('disabled')
         QgsProject.instance().writeEntry("Digitizing", "/LayerSnappingEnabledList", enabledList)
-    except:
-        pass
-
-def layerSnappingEnabledLayers():
-    enabledLayers = []
-    layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
-    enabledList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingEnabledList")
-    for idx in range(0, len(layerIdList)):
-        if enabledList[idx] == 'enabled':
-            enabledLayers.append(layerIdList[idx])
-    return enabledLayers
-
-def setLayerSnappingEnabledLayers(enabledLayers):
-    enabledList = []
-    layerIdList, ok = QgsProject.instance().readListEntry("Digitizing", "/LayerSnappingList")
-    for layerId in layerIdList:
-        if layerId in enabledLayers:
-            enabledList.append('enabled')
-        else:
-            enabledList.append('disabled')
-    QgsProject.instance().writeEntry("Digitizing", "/LayerSnappingEnabledList", enabledList)
 
 
 # Snapping Actions
@@ -285,10 +299,10 @@ class IntersectionSnappingAction(QAction):
     # Private API
 
     def _toggled(self, status):
-        setIntersectionSnapping(status)
+        Snapping.setIntersectionSnapping(status)
 
     def _refresh(self):
-        self.setChecked(intersectionSnapping())
+        self.setChecked(Snapping.intersectionSnapping())
 
 
 # Snapping Widgets
@@ -363,32 +377,32 @@ class SnappingModeTool(QToolButton):
 
     def _snappingToggled(self, checked):
         if checked:
-            if projectSnappingMode() == 'advanced':
-                setLayerSnappingEnabledLayers(self._selectedLayers)
+            if Snapping.projectSnappingMode() == 'advanced':
+                Snapping.setLayerSnappingEnabledLayers(self._selectedLayers)
             else:
-                setProjectSnappingType(self._prevType)
+                Snapping.setProjectSnappingType(self._prevType)
         else:
-            if projectSnappingMode() == 'advanced':
-                self._selectedLayers = layerSnappingEnabledLayers()
-                setLayerSnappingEnabledLayers([])
+            if Snapping.projectSnappingMode() == 'advanced':
+                self._selectedLayers = Snapping.layerSnappingEnabledLayers()
+                Snapping.setLayerSnappingEnabledLayers([])
             else:
-                self._prevType = projectSnappingType()
-                setProjectSnappingType('off')
+                self._prevType = Snapping.projectSnappingType()
+                Snapping.setProjectSnappingType('off')
         self._ignoreRefresh = True
         self.snapSettingsChanged.emit()
 
     def _snapCurrentLayer(self):
-        setProjectSnappingMode('current_layer')
+        Snapping.setProjectSnappingMode('current_layer')
         self._ignoreRefresh = True
         self.snapSettingsChanged.emit()
 
     def _snapAllLayers(self):
-        setProjectSnappingMode('all_layers')
+        Snapping.setProjectSnappingMode('all_layers')
         self._ignoreRefresh = True
         self.snapSettingsChanged.emit()
 
     def _snapSelectedLayers(self):
-        setProjectSnappingMode('advanced')
+        Snapping.setProjectSnappingMode('advanced')
         self._ignoreRefresh = True
         self.snapSettingsChanged.emit()
 
@@ -397,11 +411,11 @@ class SnappingModeTool(QToolButton):
             self._ignoreRefresh = False
             return
         self.blockSignals(True)
-        snapMode = projectSnappingMode()
-        snapType = projectSnappingType()
+        snapMode = Snapping.projectSnappingMode()
+        snapType = Snapping.projectSnappingType()
         if snapType != 'off':
             self._prevType = snapType
-        self._selectedLayers = layerSnappingEnabledLayers()
+        self._selectedLayers = Snapping.layerSnappingEnabledLayers()
         if snapMode == 'advanced':
             enabled = (len(self._selectedLayers) > 0)
             self.setChecked(enabled)
@@ -454,20 +468,20 @@ class SnappingModeCombo(QComboBox):
     def _changed(self, idx):
         mode = self.currentMode()
         if mode == 'off':
-            setProjectSnappingType('off')
-            setProjectSnappingMode('current_layer')
+            Snapping.setProjectSnappingType('off')
+            Snapping.setProjectSnappingMode('current_layer')
         else:
             if self._snapMode == 'off' and mode != 'off':
-                setProjectSnappingType(self._snapType)
-            setProjectSnappingMode(mode)
+                Snapping.setProjectSnappingType(self._snapType)
+            Snapping.setProjectSnappingMode(mode)
         self._snapMode = mode
         self.snappingModeChanged.emit(mode)
 
     def _refresh(self):
-        mode = projectSnappingMode()
+        mode = Snapping.projectSnappingMode()
         if self._snapMode == 'off' and mode == 'current_layer':
             return
-        self._snapType = projectSnappingType()
+        self._snapType = Snapping.projectSnappingType()
         self._snapMode = mode
         idx = self.findData(self._snapMode)
         self.setCurrentIndex(idx)
@@ -502,11 +516,11 @@ class SnappingTypeCombo(QComboBox):
 
     def _changed(self, idx):
         snapType = self.itemData(self.currentIndex())
-        setProjectSnappingType(snapType)
+        Snapping.setProjectSnappingType(snapType)
         self.snappingTypeChanged.emit(snapType)
 
     def _refresh(self):
-        snapType = projectSnappingType()
+        snapType = Snapping.projectSnappingType()
         idx = self.findData(snapType)
         self.setCurrentIndex(idx)
 
@@ -539,11 +553,11 @@ class SnappingUnitCombo(QComboBox):
 
     def _changed(self, idx):
         snapUnit = self.itemData(self.currentIndex())
-        setProjectSnappingUnit(snapUnit)
+        Snapping.setProjectSnappingUnit(snapUnit)
         self.snappingUnitChanged.emit(snapUnit)
 
     def _refresh(self):
-        snapUnit = projectSnappingUnit()
+        snapUnit = Snapping.projectSnappingUnit()
         idx = self.findData(snapUnit)
         self.setCurrentIndex(idx)
 
@@ -578,41 +592,40 @@ class SnappingToleranceSpinBox(QDoubleSpinBox):
     # Private API
 
     def _changed(self, idx):
-        setProjectSnappingTolerance(self.value())
+        Snapping.setProjectSnappingTolerance(self.value())
         self.snappingToleranceChanged.emit(self.value())
 
     def _refresh(self):
-        self.setValue(projectSnappingTolerance())
-        unit = projectSnappingUnit()
+        self.setValue(Snapping.projectSnappingTolerance())
+        unit = Snapping.projectSnappingUnit()
         if (unit == QgsTolerance.Pixels):
             self.setSuffix(' px')
         elif self._iface == None:
             self.setSuffix('')
         elif unit == QgsTolerance.LayerUnits: # == MapUnits
             layerUnits = None
-            mode = projectSnappingMode()
+            mode = Snapping.projectSnappingMode()
             if mode == 'current_layer':
                 layerUnits = self._iface.mapCanvas().currentLayer().crs().mapUnits()
             else:
                 # TODO Find out the correct option here for all_layers!
                 layerUnits = self._iface.mapCanvas().mapUnits()
-            suffix = _unitToSuffix(layerUnits)
+            suffix = self._unitToSuffix(layerUnits)
             self.setSuffix(suffix)
         elif unit == QgsTolerance.ProjectUnits:
             projectUnits = self._iface.mapCanvas().mapUnits()
-            suffix = _unitToSuffix(projectUnits)
+            suffix = self._unitToSuffix(projectUnits)
             self.setSuffix(suffix)
 
-
-def _unitToSuffix(unit):
-    if unit == QGis.Meters:
-        return ' m'
-    elif unit == QGis.Feet:
-        return ' ft'
-    elif unit == QGis.NauticalMiles:
-        return ' NM'
-    else:
-        return ' °'
+    def _unitToSuffix(self, unit):
+        if unit == QGis.Meters:
+            return ' m'
+        elif unit == QGis.Feet:
+            return ' ft'
+        elif unit == QGis.NauticalMiles:
+            return ' NM'
+        else:
+            return ' °'
 
 
 class SnappingToolButton(QToolButton):
@@ -789,7 +802,7 @@ class SnappingToolButton(QToolButton):
             layerUnits = QGis.Meters
             if self._layer is not None:
                 layerUnits = self._layer.crs().mapUnits()
-            suffix = _unitToSuffix(layerUnits)
+            suffix = Snapping._unitToSuffix(layerUnits)
             self._toleranceSpin.setSuffix(suffix)
 
         self._toleranceSpin.setValue(self._tolerance)

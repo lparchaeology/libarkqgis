@@ -30,7 +30,7 @@ from PyQt4.QtGui import QInputDialog, QColor, QAction, QPixmap, QCursor, QBitmap
 from qgis.core import *
 from qgis.gui import QgsMapTool, QgsRubberBand, QgsMapCanvasSnapper, QgsVertexMarker, QgsMessageBar, QgisInterface, QgsAttributeEditorContext, QgsAttributeDialog, QgsMapToolIdentify
 
-import snapping
+from snapping import Snapping
 
 # Code ported from QGIS app and adapted to take default attribute values
 # Snapping code really should be in the public api classes
@@ -791,11 +791,11 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
 
         if (featureSaved and featureType != FeatureType.Point):
             #add points to other features to keep topology up-to-date
-            topologicalEditing = snapping.topologicalEditing()
+            topologicalEditing = Snapping.topologicalEditing()
 
             #use always topological editing for avoidIntersection.
             #Otherwise, no way to guarantee the geometries don't have a small gap in between.
-            intersectionLayers = snapping.intersectionLayers()
+            intersectionLayers = Snapping.intersectionLayers()
             avoidIntersection = len(intersectionLayers)
             if (avoidIntersection): #try to add topological points also to background layers
                 for intersectionLayer in intersectionLayers:
