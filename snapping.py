@@ -229,6 +229,76 @@ class Snapping():
 
 # Snapping Actions
 
+class SnappingToleranceAction(QWidgetAction):
+
+    """QAction to change Snapping Tolerance for a project
+    """
+
+    snappingToleranceChanged = pyqtSignal(float)
+
+    _iface = None
+    _project = QgsProject.instance()
+
+    def __init__(self, parent=None):
+        """Initialises the Snapping Tolerance Editing Action
+
+        Args:
+            parent (QWidget): The parent widget, defaults to None.
+        """
+
+        super(SnappingToleranceAction, self).__init__(parent)
+
+        self._toleranceSpin = QDoubleSpinBox(parent)
+        self._toleranceSpin.setDecimals(5)
+        self._toleranceSpin.setRange(0.0, 100000000.0)
+        self.setDefaultWidget(self._toleranceSpin)
+        self.setText('Snapping Tolerance')
+        self.setStatusTip('Set the snapping tolerance')
+        self._refresh()
+
+        self._toleranceSpin.valueChanged.connect(self._changed)
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+        # If we change the settings, make such others are told
+        self.snappingToleranceChanged.connect(self._project.snapSettingsChanged)
+
+    def setInterface(self, iface):
+        self._iface = iface
+        self._refresh()
+
+    # Private API
+
+    def _changed(self, _tolerance):
+        Snapping.setProjectSnappingTolerance(self._toleranceSpin.value())
+        self.snappingToleranceChanged.emit(self._toleranceSpin.value())
+
+    def _refresh(self):
+        self.blockSignals(True)
+        self._toleranceSpin.setValue(Snapping.projectSnappingTolerance())
+        unit = Snapping.projectSnappingUnit()
+        if (unit == QgsTolerance.Pixels):
+            self._toleranceSpin.setSuffix(' px')
+        elif self._iface == None:
+            self._toleranceSpin.setSuffix('')
+        elif unit == QgsTolerance.LayerUnits: # == MapUnits
+            layerUnits = None
+            mode = Snapping.projectSnappingMode()
+            if mode == 'current_layer':
+                layerUnits = self._iface.mapCanvas().currentLayer().crs().mapUnits()
+            else:
+                # TODO Find out the correct option here for all_layers!
+                layerUnits = self._iface.mapCanvas().mapUnits()
+            suffix = _unitToSuffix(layerUnits)
+            self._toleranceSpin.setSuffix(suffix)
+        elif unit == QgsTolerance.ProjectUnits:
+            projectUnits = self._iface.mapCanvas().mapUnits()
+            suffix = _unitToSuffix(projectUnits)
+            self._toleranceSpin.setSuffix(suffix)
+        self.blockSignals(False)
+
+
 class TopologicalEditingAction(QAction):
 
     """QAction to toggle Topological Editing for a project
@@ -304,7 +374,6 @@ class IntersectionSnappingAction(QAction):
     def _refresh(self):
         self.setChecked(Snapping.intersectionSnapping())
 
-
 # Snapping Widgets
 
 class SnappingModeTool(QToolButton):
@@ -356,8 +425,12 @@ class SnappingModeTool(QToolButton):
         self._snappingModeActionGroup.addAction(self._allAction)
         self._snappingModeActionGroup.addAction(self._selectedAction)
 
+        self._toleranceAction = SnappingToleranceAction(self)
+
         self._menu = QMenu(self)
         self._menu.addActions(self._snappingModeActionGroup.actions())
+        self._menu.addSeparator()
+        self._menu.addAction(self._toleranceAction)
         self.setMenu(self._menu)
 
         self._refresh()
