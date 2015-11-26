@@ -610,22 +610,22 @@ class SnappingToleranceSpinBox(QDoubleSpinBox):
             else:
                 # TODO Find out the correct option here for all_layers!
                 layerUnits = self._iface.mapCanvas().mapUnits()
-            suffix = self._unitToSuffix(layerUnits)
+            suffix = _unitToSuffix(layerUnits)
             self.setSuffix(suffix)
         elif unit == QgsTolerance.ProjectUnits:
             projectUnits = self._iface.mapCanvas().mapUnits()
-            suffix = self._unitToSuffix(projectUnits)
+            suffix = _unitToSuffix(projectUnits)
             self.setSuffix(suffix)
 
-    def _unitToSuffix(self, unit):
-        if unit == QGis.Meters:
-            return ' m'
-        elif unit == QGis.Feet:
-            return ' ft'
-        elif unit == QGis.NauticalMiles:
-            return ' NM'
-        else:
-            return ' °'
+def _unitToSuffix(unit):
+    if unit == QGis.Meters:
+        return ' m'
+    elif unit == QGis.Feet:
+        return ' ft'
+    elif unit == QGis.NauticalMiles:
+        return ' NM'
+    else:
+        return ' °'
 
 
 class SnappingToolButton(QToolButton):
@@ -802,7 +802,7 @@ class SnappingToolButton(QToolButton):
             layerUnits = QGis.Meters
             if self._layer is not None:
                 layerUnits = self._layer.crs().mapUnits()
-            suffix = Snapping._unitToSuffix(layerUnits)
+            suffix = _unitToSuffix(layerUnits)
             self._toleranceSpin.setSuffix(suffix)
 
         self._toleranceSpin.setValue(self._tolerance)
