@@ -50,17 +50,3 @@ def showCriticalMessage(iface, text, duration=0):
 
 def showStatusMessage(iface, text):
     iface.mainWindow().statusBar().showMessage(text)
-
-# Project setting utilities
-
-def setEntry(scope, key, value, default=None):
-    if (value == None or value == '' or value == default):
-        QgsProject.instance().removeEntry(scope, key)
-    else:
-        QgsProject.instance().writeEntry(scope, key, value)
-
-def projectCrs(iface):
-    if QGis.QGIS_VERSION_INT >= 20400:
-        return iface.mapCanvas().mapSettings().destinationCrs()
-    else:
-        return iface.mapCanvas().mapRenderer().destinationCrs()

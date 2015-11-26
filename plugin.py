@@ -27,6 +27,8 @@ from PyQt4.QtGui import QAction, QIcon
 from qgis.core import QGis, QgsProject, QgsMessageLog
 from qgis.gui import QgsMessageBar
 
+from project import Project
+
 # Initialize Qt resources from file resources.py
 import resources_rc
 
@@ -263,55 +265,33 @@ class Plugin(QObject):
     # Project utilities
 
     def projectCrs(self):
-        if QGis.QGIS_VERSION_INT >= 20400:
-            return self.iface.mapCanvas().mapSettings().destinationCrs()
-        else:
-            return self.iface.mapCanvas().mapRenderer().destinationCrs()
+        return Project.crs(self.iface)
 
     # Settings utilities
 
     def setEntry(self, key, value, default=None):
-        if (value == None or value == '' or value == default):
-            self.removeEntry(key)
-        else:
-            self.writeEntry(key, value)
+        return Project.setEntry(self.pluginName, key, value, default)
 
     def removeEntry(self, key):
-        QgsProject.instance().removeEntry(self.pluginName, key)
+        return Project.removeEntry(self.pluginName, key)
 
     def writeEntry(self, key, value):
-        QgsProject.instance().writeEntry(self.pluginName, key, value)
+        return Project.writeEntry(self.pluginName, key, value)
 
     def readEntry(self, key, default=''):
-        ret = QgsProject.instance().readEntry(self.pluginName, key, default)
-        if ret is None or not ret[1]:
-            return default
-        else:
-            return ret[0]
+        return Project.readEntry(self.pluginName, key, default)
 
     def readNumEntry(self, key, default=0):
-        ret = QgsProject.instance().readNumEntry(self.pluginName, key, default)
-        if ret is None or not ret[1]:
-            return default
-        else:
-            return ret[0]
+        return Project.readNumEntry(self.pluginName, key, default)
 
     def readDoubleEntry(self, key, default=0.0):
-        ret = QgsProject.instance().readDoubleEntry(self.pluginName, key, default)
-        if ret is None or not ret[1]:
-            return default
-        else:
-            return ret[0]
+        return Project.readDoubleEntry(self.pluginName, key, default)
 
     def readBoolEntry(self, key, default=False):
-        ret = QgsProject.instance().readBoolEntry(self.pluginName, key, default)
-        if ret is None or not ret[1]:
-            return default
-        else:
-            return ret[0]
+        return Project.readBoolEntry(self.pluginName, key, default)
 
     def readListEntry(self, key, default=[]):
-        QgsProject.instance().readListEntry(self.pluginName, key, default)
+        return Project.readListEntry(self.pluginName, key, default)
 
     # QgsInterface utilities
 
