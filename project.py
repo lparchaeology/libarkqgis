@@ -43,11 +43,11 @@ class Project:
             return QgsProject.instance().writeEntry(scope, key, value)
 
     @staticmethod
-    def removeEntry(scope, scope, key):
+    def removeEntry(scope, key):
         return QgsProject.instance().removeEntry(scope, key)
 
     @staticmethod
-    def writeEntry(scope, scope, key, value):
+    def writeEntry(scope, key, value):
         return QgsProject.instance().writeEntry(scope, key, value)
 
     @staticmethod
