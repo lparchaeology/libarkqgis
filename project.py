@@ -84,4 +84,4 @@ class Project:
 
     @staticmethod
     def readListEntry(scope, key, default=[]):
-        QgsProject.instance().readListEntry(scope, key, default)
+        return QgsProject.instance().readListEntry(scope, key, default)
