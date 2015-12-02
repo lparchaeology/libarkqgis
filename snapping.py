@@ -211,8 +211,8 @@ class Snapping():
     # Topological Editing, i.e. the system-wide setting
 
     @staticmethod
-    def topologicalEditing(defaultValue=True):
-        return QgsProject.instance().topologicalEditing(defaultValue)
+    def topologicalEditing():
+        return QgsProject.instance().topologicalEditing()
 
     @staticmethod
     def setTopologicalEditing(enabled=True):
