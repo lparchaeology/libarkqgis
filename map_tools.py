@@ -80,7 +80,7 @@ class ArkMapToolIndentifyFeatures(QgsMapToolIdentify):
     def canvasReleaseEvent(self, e):
         if e.button() != Qt.LeftButton:
             return
-        results = self.identify(e.x(), e.y(), QgsMapToolIdentify.TopDownAll, QgsMapToolIdentify.VectorLayer)
+        results = self.identify(e.x(), e.y(), QgsMapToolIdentify.LayerSelection, QgsMapToolIdentify.VectorLayer)
         if (len(results) < 1):
             return
         # TODO: display a menu when several features identified
