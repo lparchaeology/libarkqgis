@@ -340,6 +340,9 @@ class SnappingToleranceAction(QWidgetAction):
         self.snappingToleranceChanged.emit(self._toleranceSpin.value())
 
     def _refresh(self):
+        #FIXME Ugly workaround to the reload probem, as if signal not disconnect on deletion?
+        if self is None or Snapping is None:
+            return
         self.blockSignals(True)
         self._toleranceSpin.setValue(Snapping.projectSnappingTolerance())
         unit = Snapping.projectSnappingUnit()
