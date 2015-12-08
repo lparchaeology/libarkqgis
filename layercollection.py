@@ -26,7 +26,7 @@ from sets import Set
 
 from PyQt4.QtCore import QVariant, QDir
 
-from qgis.core import QGis, QgsMapLayerRegistry, QgsVectorLayer, QgsProject, QgsSnapper, QgsTolerance, QgsMapLayer, QgsFeatureRequest, QgsRectangle
+from qgis.core import QGis, QgsMapLayerRegistry, QgsVectorLayer, QgsProject, QgsSnapper, QgsTolerance, QgsMapLayer, QgsFeatureRequest, QgsRectangle, QgsLayerTreeGroup
 from qgis.gui import QgsMessageBar
 
 import utils, layers, snapping
@@ -187,7 +187,15 @@ class LayerCollection:
         self._removeOldBuffers()
 
         if (self._buffersGroupIndex < 0):
-            self._buffersGroupIndex = layers.createLayerGroup(self._iface, self._settings.buffersGroupName, self._settings.parentGroupName)
+            root = QgsProject.instance().layerTreeRoot()
+            parent = root.findGroup(self._settings.parentGroupName)
+            idx = 0
+            for child in parent.children():
+                if isinstance(child, QgsLayerTreeGroup) and child.name() == self._settings.collectionGroupName:
+                    break
+                idx += 1
+            grp = parent.insertGroup(idx, self._settings.buffersGroupName)
+            self._buffersGroupIndex = layers.getGroupIndex(self._iface, self._settings.buffersGroupName)
 
         if (self.polygonsBuffer is None or not self.polygonsBuffer.isValid()):
             self.polygonsBuffer, self.polygonsBufferId = self._createBufferLayer(self.polygonsLayer, self._settings.polygonsStylePath)
@@ -197,6 +205,9 @@ class LayerCollection:
 
         if (self.pointsBuffer is None or not self.pointsBuffer.isValid()):
             self.pointsBuffer, self.pointsBufferId = self._createBufferLayer(self.pointsLayer, self._settings.pointsStylePath)
+
+        for child in grp.children():
+            child.setExpanded(False)
 
     def _createBufferLayer(self, layer, stylePath):
         if (layer is not None and layer.isValid()):
