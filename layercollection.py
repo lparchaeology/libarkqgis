@@ -306,6 +306,15 @@ class LayerCollection:
         self._clearBuffer('lines', self.linesBuffer, undoMessage)
         self._clearBuffer('polygons', self.polygonsBuffer, undoMessage)
 
+    def moveToBuffers(self, featureRequest):
+        if (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, 'Copy point features to buffer')
+            and layers.copyFeatureRequest(featureRequest, self.linesLayer, self.linesBuffer, 'Copy line features to buffer')
+            and layers.copyFeatureRequest(featureRequest, self.polygonsLayer, self.polygonsBuffer, 'Copy polygon features to buffer')):
+            layers.deleteFeatureRequest(featureRequest, self.pointsLayer, 'Delete point features')
+            layers.deleteFeatureRequest(featureRequest, self.linesLayer, 'Delete line features')
+            layers.deleteFeatureRequest(featureRequest, self.polygonsLayer, 'Delete polygon features')
+        else:
+            self.clearBuffers('')
 
     def showPoints(self, status):
         self._iface.legendInterface().setLayerVisible(self.pointsLayer, status)

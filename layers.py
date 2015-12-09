@@ -214,3 +214,144 @@ def wkbToMemoryType(wkbType):
     elif (wkbType == QGis.WKBMultiPolygon25D):
         return 'multipolygon'
     return 'unknown'
+
+def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy features'):
+    ok = False
+    if (fromLayer is None or not fromLayer.isValid() or toLayer is None or not toLayer.isValid()):
+        return ok
+    # Stash the current subset
+    fromSubset = fromLayer.subsetString()
+    if fromSubset:
+        fromLayer.setSubsetString('')
+    toSubset = toLayer.subsetString()
+    if toSubset:
+        toLayer.setSubsetString('')
+    # Copy the requested features
+    wasEditing = toLayer.isEditable()
+    if wasEditing or toLayer.startEditing():
+        toLayer.beginEditCommand(undoMessage)
+        ft = 0
+        for feature in fromLayer.getFeatures(featureRequest):
+            ft += 1
+            ok = toLayer.addFeature(feature, False)
+            if not ok:
+                break
+        if ok:
+            toLayer.endEditCommand()
+        else:
+            toLayer.destroyEditCommand()
+        if not wasEditing:
+            if ok:
+                ok = toLayer.commitChanges()
+            else:
+                toLayer.rollBack()
+        if ft == 0:
+            ok = True
+    # Restore the previous selection and subset
+    if fromSubset:
+        fromLayer.setSubsetString(fromSubset)
+    if toSubset:
+        toLayer.setSubsetString(toSubset)
+    return ok
+
+def copyFeatureIds(featureIds, fromLayer, toLayer, undoMessage='Copy features'):
+    ok = False
+    if (fromLayer is None or not fromLayer.isValid() or toLayer is None or not toLayer.isValid()):
+        return ok
+    # Stash the current selection and subset
+    prevSelect = fromLayer.selectedFeatureIds()
+    fromSubset = fromLayer.subsetString()
+    toSubset = toLayer.subsetString()
+    fromLayer.removeSelection()
+    if fromSubset:
+        fromLayer.setSubsetString('')
+    if toSubset:
+        fromLayer.setSubsetString('')
+    # Select the requested features
+    fromLayer.select(featureIds)
+    # Copy the selected features
+    if (fromLayer.selectedFeatureCount() > 0):
+        wasEditing = toLayer.isEditable()
+        if wasEditing or toLayer.startEditing():
+            toLayer.beginEditCommand(undoMessage)
+            ok = toLayer.addFeatures(fromLayer.selectedFeatures(), False)
+            if ok:
+                toLayer.endEditCommand()
+            else:
+                toLayer.destroyEditCommand()
+            if not wasEditing:
+                if ok:
+                    ok = toLayer.commitChanges()
+                else:
+                    toLayer.rollBack()
+    else:
+        ok = True
+    # Restore the previous selection and subset
+    fromLayer.removeSelection()
+    if fromSubset:
+        fromLayer.setSubsetString(fromSubset)
+    if toSubset:
+        toLayer.setSubsetString(toSubset)
+    fromLayer.select(prevSelect)
+    return ok
+
+def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features'):
+    ok = False
+    if layer is None or not layer.isValid():
+        return ok
+    # Stash the current subset
+    subset = layer.subsetString()
+    if subset:
+        layer.setSubsetString('')
+    # Copy the requested features
+    wasEditing = layer.isEditable()
+    if wasEditing or layer.startEditing():
+        layer.beginEditCommand(undoMessage)
+        ft = 0
+        for feature in layer.getFeatures(featureRequest):
+            ft += 1
+            ok = layer.deleteFeature(feature.id())
+            if not ok:
+                break
+        if ok:
+            layer.endEditCommand()
+        else:
+            layer.destroyEditCommand()
+        if not wasEditing:
+            if ok:
+                ok = layer.commitChanges()
+            else:
+                layer.rollBack()
+        if ft == 0:
+            ok = True
+    # Restore the previous subset
+    if subset:
+        layer.setSubsetString(subset)
+    return ok
+
+def deleteFeatureIds(featureIds, layer, undoMessage='Delete features'):
+    ok = False
+    if layer is None or not layer.isValid():
+        return ok
+    # Stash the current subset
+    subset = layer.subsetString()
+    if subset:
+        layer.setSubsetString('')
+    # Delete the requested features
+    wasEditing = toLayer.isEditable()
+    if wasEditing or layer.startEditing():
+        layer.beginEditCommand(undoMessage)
+        ok = layer.deleteFeatures(featureIds)
+    if ok:
+        layer.endEditCommand()
+    else:
+        layer.destroyEditCommand()
+    if not wasEditing:
+        if ok:
+            ok = layer.commitChanges()
+        else:
+            layer.rollBack()
+    # Restore the previous subset
+    if subset:
+        layer.setSubsetString(subset)
+    return ok
