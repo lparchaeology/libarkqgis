@@ -316,6 +316,11 @@ class LayerCollection:
         else:
             self.clearBuffers('')
 
+    def deleteRequest(self, featureRequest):
+        layers.deleteFeatureRequest(featureRequest, self.pointsLayer, 'Delete point features')
+        layers.deleteFeatureRequest(featureRequest, self.linesLayer, 'Delete line features')
+        layers.deleteFeatureRequest(featureRequest, self.polygonsLayer, 'Delete polygon features')
+
     def showPoints(self, status):
         self._iface.legendInterface().setLayerVisible(self.pointsLayer, status)
 
