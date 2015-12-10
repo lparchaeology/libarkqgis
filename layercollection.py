@@ -408,7 +408,7 @@ class LayerCollection:
 
 
     def extent(self):
-        extent = QgsRectangle()
+        extent = None
         extent = self._extendExtent(extent, self.pointsLayer)
         extent = self._extendExtent(extent, self.linesLayer)
         extent = self._extendExtent(extent, self.polygonsLayer)
@@ -419,17 +419,16 @@ class LayerCollection:
 
 
     def _extendExtent(self, extent, layer):
-        if (layer is None or not layer.isValid() or layer.featureCount() == 0 or not self._iface.legendInterface().isLayerVisible(layer)):
-            return extent
-        layer.updateExtents()
-        layerExtent = layer.extent()
-        if (extent is None and layerExtent is None):
-            return QgsRectangle()
-        elif (extent is None or extent.isNull()):
-            return layerExtent
-        elif (layerExtent is None or layerExtent.isNull()):
-            return extent
-        return extent.combineExtentWith(layerExtent)
+        if (layer is not None and layer.isValid() and layer.featureCount() > 0 and self._iface.legendInterface().isLayerVisible(layer)):
+            layer.updateExtents()
+            layerExtent = layer.extent()
+            if layerExtent.isNull() or layerExtent.isEmpty():
+                return extent
+            if extent == None:
+                extent = layerExtent
+            else:
+                extent.combineExtentWith(layerExtent)
+        return extent
 
 
     def uniqueValues(self, fieldName):
