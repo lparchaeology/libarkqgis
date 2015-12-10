@@ -543,6 +543,9 @@ class SnappingModeTool(QToolButton):
         self.snapSettingsChanged.emit()
 
     def _refresh(self):
+        #FIXME Ugly workaround to the reload probem, as if signal not disconnect on deletion?
+        if self is None or Snapping is None:
+            return
         self.blockSignals(True)
         snapMode = Snapping.snappingMode()
         snapType = Snapping.projectSnappingType()
