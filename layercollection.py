@@ -249,62 +249,24 @@ class LayerCollection:
             return False
         return True
 
-    def _clearBuffer(self, type, buffer, undoMessage=''):
-        if (buffer is None or not buffer.isValid()):
-            return
-        message = undoMessage
-        if (not undoMessage):
-            message = 'Clear buffer'
-        message = message + ' - ' + type
-        buffer.selectAll()
-        if (buffer.selectedFeatureCount() > 0):
-            if not buffer.isEditable():
-                buffer.startEditing()
-            buffer.beginEditCommand(message)
-            buffer.deleteSelectedFeatures()
-            buffer.endEditCommand()
-            buffer.commitChanges()
-            buffer.startEditing()
-        buffer.removeSelection()
-
-    def _copyBuffer(self, type, buffer, layer, undoMessage=''):
-        ok = False
-        if (buffer is None or not buffer.isValid() or layer is None or not layer.isValid()):
-            return ok
-        message = undoMessage
-        if (not undoMessage):
-            message = 'Merge data'
-        message = message + ' - ' + type
-        filter = layer.subsetString()
-        if filter:
-            layer.setSubsetString('')
-        buffer.selectAll()
-        if (buffer.selectedFeatureCount() > 0):
-            if layer.startEditing():
-                layer.beginEditCommand(message)
-                ok = layer.addFeatures(buffer.selectedFeatures(), False)
-                layer.endEditCommand()
-                if ok:
-                    ok = layer.commitChanges()
-        else:
-            ok = True
-        buffer.removeSelection()
-        if filter:
-            layer.setSubsetString(filter)
-        return ok
-
     def mergeBuffers(self, undoMessage):
-        if self._copyBuffer('levels', self.pointsBuffer, self.pointsLayer, undoMessage):
-            self._clearBuffer('levels', self.pointsBuffer, undoMessage)
-        if self._copyBuffer('lines', self.linesBuffer, self.linesLayer, undoMessage):
-            self._clearBuffer('lines', self.linesBuffer, undoMessage)
-        if self._copyBuffer('polygons', self.polygonsBuffer, self.polygonsLayer, undoMessage):
-            self._clearBuffer('polygons', self.polygonsBuffer, undoMessage)
+        if layers.copyAllFeatures(self.pointsBuffer, self.pointsLayer, undoMessage + ' - points'):
+            self._clearBuffer(self.pointsBuffer, undoMessage + ' - points')
+        if layers.copyAllFeatures(self.linesBuffer, self.linesLayer, undoMessage + ' - lines'):
+            self._clearBuffer(self.linesBuffer, undoMessage + ' - lines')
+        if layers.copyAllFeatures(self.polygonsBuffer, self.polygonsLayer, undoMessage + ' - polygons'):
+            self._clearBuffer(self.polygonsBuffer, undoMessage + ' - polygons')
 
     def clearBuffers(self, undoMessage):
-        self._clearBuffer('levels', self.pointsBuffer, undoMessage)
-        self._clearBuffer('lines', self.linesBuffer, undoMessage)
-        self._clearBuffer('polygons', self.polygonsBuffer, undoMessage)
+        self._clearBuffer(self.pointsBuffer, undoMessage + ' - points')
+        self._clearBuffer(self.linesBuffer, undoMessage + ' - lines')
+        self._clearBuffer(self.polygonsBuffer, undoMessage + ' - polygons')
+
+    def _clearBuffer(self, layer, undoMessage):
+        ok = layers.deleteAllFeatures(layer, undoMessage)
+        if ok:
+            layer.commitChanges()
+            layer.startEditing()
 
     def moveToBuffers(self, featureRequest):
         if (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, 'Copy point features to buffer')

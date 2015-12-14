@@ -259,7 +259,7 @@ def copyFeatureIds(featureIds, fromLayer, toLayer, undoMessage='Copy features'):
     if (fromLayer is None or not fromLayer.isValid() or toLayer is None or not toLayer.isValid()):
         return ok
     # Stash the current selection and subset
-    prevSelect = fromLayer.selectedFeatureIds()
+    prevSelect = fromLayer.selectedFeaturesIds()
     fromSubset = fromLayer.subsetString()
     toSubset = toLayer.subsetString()
     fromLayer.removeSelection()
@@ -269,6 +269,47 @@ def copyFeatureIds(featureIds, fromLayer, toLayer, undoMessage='Copy features'):
         fromLayer.setSubsetString('')
     # Select the requested features
     fromLayer.select(featureIds)
+    # Copy the selected features
+    if (fromLayer.selectedFeatureCount() > 0):
+        wasEditing = toLayer.isEditable()
+        if wasEditing or toLayer.startEditing():
+            toLayer.beginEditCommand(undoMessage)
+            ok = toLayer.addFeatures(fromLayer.selectedFeatures(), False)
+            if ok:
+                toLayer.endEditCommand()
+            else:
+                toLayer.destroyEditCommand()
+            if not wasEditing:
+                if ok:
+                    ok = toLayer.commitChanges()
+                else:
+                    toLayer.rollBack()
+    else:
+        ok = True
+    # Restore the previous selection and subset
+    fromLayer.removeSelection()
+    if fromSubset:
+        fromLayer.setSubsetString(fromSubset)
+    if toSubset:
+        toLayer.setSubsetString(toSubset)
+    fromLayer.select(prevSelect)
+    return ok
+
+def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features'):
+    ok = False
+    if (fromLayer is None or not fromLayer.isValid() or toLayer is None or not toLayer.isValid()):
+        return ok
+    # Stash the current selection and subset
+    prevSelect = fromLayer.selectedFeaturesIds()
+    fromSubset = fromLayer.subsetString()
+    toSubset = toLayer.subsetString()
+    fromLayer.removeSelection()
+    if fromSubset:
+        fromLayer.setSubsetString('')
+    if toSubset:
+        fromLayer.setSubsetString('')
+    # Select the requested features
+    fromLayer.selectAll()
     # Copy the selected features
     if (fromLayer.selectedFeatureCount() > 0):
         wasEditing = toLayer.isEditable()
@@ -354,4 +395,36 @@ def deleteFeatureIds(featureIds, layer, undoMessage='Delete features'):
     # Restore the previous subset
     if subset:
         layer.setSubsetString(subset)
+    return ok
+
+def deleteAllFeatures(layer, undoMessage='Delete features'):
+    ok = False
+    if layer is None or not layer.isValid():
+        return ok
+    # Stash the current selection and subset
+    prevSelect = layer.selectedFeaturesIds()
+    subset = layer.subsetString()
+    if subset:
+        layer.setSubsetString('')
+    # Select the requested features
+    layer.selectAll()
+    # Delete the requested features
+    wasEditing = layer.isEditable()
+    if wasEditing or layer.startEditing():
+        layer.beginEditCommand(undoMessage)
+        ok = layer.deleteSelectedFeatures()
+    if ok:
+        layer.endEditCommand()
+    else:
+        layer.destroyEditCommand()
+    if not wasEditing:
+        if ok:
+            ok = layer.commitChanges()
+        else:
+            layer.rollBack()
+    # Restore the previous selection and subset
+    layer.removeSelection()
+    if subset:
+        layer.setSubsetString(subset)
+    layer.select(prevSelect)
     return ok
