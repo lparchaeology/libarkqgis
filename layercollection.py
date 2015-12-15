@@ -112,6 +112,10 @@ class LayerCollection:
         QgsMapLayerRegistry.instance().removeMapLayer(layerId)
         layerId = layers.getLayerId(self._settings.polygonsLayerName + self._settings.bufferSuffix)
         QgsMapLayerRegistry.instance().removeMapLayer(layerId)
+        buffersGroupIndex = layers.getGroupIndex(self._iface, self._settings.buffersGroupName)
+        if buffersGroupIndex >= 0:
+            self._iface.legendInterface().removeGroup(buffersGroupIndex)
+
 
     def _groupIndexChanged(self, oldIndex, newIndex):
         if (oldIndex == self._collectionGroupIndex):
@@ -186,16 +190,9 @@ class LayerCollection:
 
         self._removeOldBuffers()
 
-        if (self._buffersGroupIndex < 0):
-            root = QgsProject.instance().layerTreeRoot()
-            parent = root.findGroup(self._settings.parentGroupName)
-            idx = 0
-            for child in parent.children():
-                if isinstance(child, QgsLayerTreeGroup) and child.name() == self._settings.collectionGroupName:
-                    break
-                idx += 1
-            grp = parent.insertGroup(idx, self._settings.buffersGroupName)
-            self._buffersGroupIndex = layers.getGroupIndex(self._iface, self._settings.buffersGroupName)
+        collectionGroupIndex = layers.childGroupIndex(self._settings.parentGroupName, self._settings.collectionGroupName)
+        grp = layers.insertChildGroup(self._settings.parentGroupName, self._settings.buffersGroupName, collectionGroupIndex)
+        self._buffersGroupIndex = layers.getGroupIndex(self._iface, self._settings.buffersGroupName)
 
         if (self.polygonsBuffer is None or not self.polygonsBuffer.isValid()):
             self.polygonsBuffer, self.polygonsBufferId = self._createBufferLayer(self.polygonsLayer, self._settings.polygonsStylePath)

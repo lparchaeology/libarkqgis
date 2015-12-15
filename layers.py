@@ -26,7 +26,7 @@ from PyQt4.QtCore import pyqtSignal
 from PyQt4.QtGui import QDialog, QComboBox, QDialogButtonBox
 from PyQt4.QtXml import QDomImplementation, QDomDocument
 
-from qgis.core import QGis, QgsMapLayer, QgsMapLayerRegistry, QgsVectorLayer, QgsVectorFileWriter
+from qgis.core import QGis, QgsMapLayer, QgsMapLayerRegistry, QgsVectorLayer, QgsVectorFileWriter, QgsProject, QgsLayerTreeGroup
 
 # Layer Widgets
 
@@ -428,3 +428,26 @@ def deleteAllFeatures(layer, undoMessage='Delete features'):
         layer.setSubsetString(subset)
     layer.select(prevSelect)
     return ok
+
+def childGroupIndex(parentGroupName, childGroupName):
+    root = QgsProject.instance().layerTreeRoot()
+    if root is None:
+        return -1
+    parent = root.findGroup(parentGroupName)
+    if parent is None:
+        return -1
+    idx = 0
+    for child in parent.children():
+        if isinstance(child, QgsLayerTreeGroup) and child.name() == childGroupName:
+            break
+        idx += 1
+    return  idx
+
+def insertChildGroup(parentGroupName, childGroupName, childIndex):
+    root = QgsProject.instance().layerTreeRoot()
+    if root is None:
+        return None
+    parent = root.findGroup(parentGroupName)
+    if parent is None:
+        return None
+    return parent.insertGroup(childIndex, childGroupName)
