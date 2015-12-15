@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/plugins/Ark" >
+    <qresource prefix="/plugins/ark" >
         <file alias="snapLayerAll.png">resources/iconLayerAll.png</file>
         <file alias="snapLayerCurrent.png">resources/iconLayerCurrent.png</file>
         <file alias="snapLayerSelected.png">resources/iconLayerSelected.png</file>

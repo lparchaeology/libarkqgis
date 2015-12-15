@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
-                                 A QGIS plugin
+                                ARK QGIS
+                        A QGIS utilities library.
+        Part of the Archaeological Recording Kit by L-P : Archaeology
+                        http://ark.lparchaeology.com
                               -------------------
-        begin                : 2015-05-25
+        begin                : 2014-12-07
         git sha              : $Format:%H$
-        copyright            : (C) 2015 by John Layt / LP Heritage LLP
+        copyright            : 2014, 2015 by L-P : Heritage LLP
+        email                : ark@lparchaeology.com
+        copyright            : 2014, 2015 by John Layt
         email                : john@layt.net
  ***************************************************************************/
 

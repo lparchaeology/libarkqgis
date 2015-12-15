@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
-                                      Ark
-                                 A QGIS plugin
-             QGIS Plugin for ARK, the Archaeological Recording Kit
+                                ARK QGIS
+                        A QGIS utilities library.
+        Part of the Archaeological Recording Kit by L-P : Archaeology
+                        http://ark.lparchaeology.com
                               -------------------
-        begin                : 2015-03-02
+        begin                : 2014-12-07
         git sha              : $Format:%H$
-        copyright            : (C) 2015 by John Layt
-        copyright            : (C) 2015 by L - P: Heritage LLP
-        copyright            : (C) 2010 by Jürgen E. Fischer
-        copyright            : (C) 2007 by Marco Hugentobler
-        copyright            : (C) 2006 by Martin Dobias
+        copyright            : 2014, 2015 by L-P : Heritage LLP
+        email                : ark@lparchaeology.com
+        copyright            : 2014, 2015 by John Layt
         email                : john@layt.net
+        copyright            : 2010 by Jürgen E. Fischer
+        copyright            : 2007 by Marco Hugentobler
+        copyright            : 2006 by Martin Dobias
  ***************************************************************************/
 
 /***************************************************************************

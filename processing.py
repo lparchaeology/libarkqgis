@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
-                                      Ark
-                                 A QGIS plugin
-             QGIS Plugin for ARK, the Archaeological Recording Kit
+                                ARK QGIS
+                        A QGIS utilities library.
+        Part of the Archaeological Recording Kit by L-P : Archaeology
+                        http://ark.lparchaeology.com
                               -------------------
-        begin                : 2015-11-09
+        begin                : 2014-12-07
         git sha              : $Format:%H$
-        copyright            : (C) 2015 by L - P: Heritage LLP
-        copyright            : (C) 2015 by John Layt
-        copyright            : (C) 2013 by Piotr Pociask
-        copyright            : (C) 2013 by Victor Olaya
+        copyright            : 2014, 2015 by L-P : Heritage LLP
+        email                : ark@lparchaeology.com
+        copyright            : 2014, 2015 by John Layt
         email                : john@layt.net
+        copyright            : 2013 by Piotr Pociask
+        copyright            : 2013 by Victor Olaya
  ***************************************************************************/
 
 /***************************************************************************
@@ -28,7 +30,7 @@ from qgis.core import QgsFeature, QgsGeometry
 from shapely.ops import polygonize, unary_union
 from shapely.geometry import MultiLineString
 
-# Adapted from QGIS Processing plugin Polygonize
+# Adapted from QGIS Processing plugin Polygonize by Piotr Pociask
 def polygonizeFeatures(features, fields=None):
     allLinesList = []
     for inFeat in features:
@@ -47,7 +49,7 @@ def polygonizeFeatures(features, fields=None):
         outList.append(outFeat)
     return outList
 
-# Adapted from QGIS Processing plugin Dissolve
+# Adapted from QGIS Processing plugin Dissolve by Victor Olaya
 def dissolveFeatures(features, fields=None, attributes=None):
     outFeat = QgsFeature(fields)
     first = True

@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
-                                      Ark
-                                 A QGIS plugin
-             QGIS Plugin for ARK, the Archaeological Recording Kit
+                                ARK QGIS
+                        A QGIS utilities library.
+        Part of the Archaeological Recording Kit by L-P : Archaeology
+                        http://ark.lparchaeology.com
                               -------------------
-        begin                : 2015-03-02
+        begin                : 2014-12-07
         git sha              : $Format:%H$
-        copyright            : (C) 2015 by L - P: Heritage LLP
-        copyright            : (C) 2015 by John Layt
+        copyright            : 2014, 2015 by L-P : Heritage LLP
+        email                : ark@lparchaeology.com
+        copyright            : 2014, 2015 by John Layt
         email                : john@layt.net
  ***************************************************************************/
 
@@ -382,7 +384,7 @@ class TopologicalEditingAction(QAction):
         super(TopologicalEditingAction, self).__init__(parent)
 
         self.setCheckable(True)
-        self._icon = QIcon(':/plugins/Ark/topologicalEditing.png')
+        self._icon = QIcon(':/plugins/ark/topologicalEditing.png')
         self.setIcon(self._icon)
         self.setText('Topological Editing')
 
@@ -420,7 +422,7 @@ class IntersectionSnappingAction(QAction):
         super(IntersectionSnappingAction, self).__init__(parent)
 
         self.setCheckable(True)
-        self._icon = QIcon(':/plugins/Ark/snapIntersections.png')
+        self._icon = QIcon(':/plugins/ark/snapIntersections.png')
         self.setIcon(self._icon)
         self.setText('Intersection Snapping')
 
@@ -472,17 +474,17 @@ class SnappingModeTool(QToolButton):
 
         self._project = QgsProject.instance()
 
-        self._currentIcon = QIcon(':/plugins/Ark/snapLayerCurrent.png')
+        self._currentIcon = QIcon(':/plugins/ark/snapLayerCurrent.png')
         self._currentAction = QAction(self._currentIcon, 'Current Layer', self)
         self._currentAction.setStatusTip('Snap to current layer')
         self._currentAction.setCheckable(True)
 
-        self._allIcon = QIcon(':/plugins/Ark/snapLayerAll.png')
+        self._allIcon = QIcon(':/plugins/ark/snapLayerAll.png')
         self._allAction = QAction(self._allIcon, 'All Layers', self)
         self._allAction.setStatusTip('Snap to all layers')
         self._allAction.setCheckable(True)
 
-        self._selectedIcon = QIcon(':/plugins/Ark/snapLayerSelected.png')
+        self._selectedIcon = QIcon(':/plugins/ark/snapLayerSelected.png')
         self._selectedAction = QAction(self._selectedIcon, 'Selected Layers', self)
         self._selectedAction.setStatusTip('Snap to selected layers')
         self._selectedAction.setCheckable(True)
@@ -798,17 +800,17 @@ class SnappingToolButton(QToolButton):
         #Disable until we have a _layerId
         self.setEnabled(False)
 
-        self._vertexIcon = QIcon(':/plugins/Ark/snapVertex.png')
+        self._vertexIcon = QIcon(':/plugins/ark/snapVertex.png')
         self._vertexAction = QAction(self._vertexIcon, 'Vertex', self)
         self._vertexAction.setStatusTip('Snap to vertex')
         self._vertexAction.setCheckable(True)
 
-        self._segmentIcon = QIcon(':/plugins/Ark/snapSegment.png')
+        self._segmentIcon = QIcon(':/plugins/ark/snapSegment.png')
         self._segmentAction = QAction(self._segmentIcon, 'Segment', self)
         self._segmentAction.setStatusTip('Snap to segment')
         self._segmentAction.setCheckable(True)
 
-        self._vertexSegmentIcon = QIcon(':/plugins/Ark/snapVertexSegment.png')
+        self._vertexSegmentIcon = QIcon(':/plugins/ark/snapVertexSegment.png')
         self._vertexSegmentAction = QAction(self._vertexSegmentIcon, 'Vertex and Segment', self)
         self._vertexSegmentAction.setStatusTip('Snap to vertex and segment')
         self._vertexSegmentAction.setCheckable(True)
