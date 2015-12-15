@@ -116,7 +116,6 @@ class LayerCollection:
         if buffersGroupIndex >= 0:
             self._iface.legendInterface().removeGroup(buffersGroupIndex)
 
-
     def _groupIndexChanged(self, oldIndex, newIndex):
         if (oldIndex == self._collectionGroupIndex):
             self._collectionGroupIndex = newIndex
@@ -180,7 +179,6 @@ class LayerCollection:
         return True
 
     def _setDefaultSnapping(self, layer):
-        # TODO Check if layer id already in settings, only set defaults if it isn't
         res = QgsProject.instance().snapSettingsForLayer(layer.id())
         if not res[0]:
             QgsProject.instance().setSnapSettingsForLayer(layer.id(), True, QgsSnapper.SnapToVertex, QgsTolerance.Pixels, 10.0, False)
@@ -194,67 +192,37 @@ class LayerCollection:
         grp = layers.insertChildGroup(self._settings.parentGroupName, self._settings.buffersGroupName, collectionGroupIndex)
         self._buffersGroupIndex = layers.getGroupIndex(self._iface, self._settings.buffersGroupName)
 
-        if (self.polygonsBuffer is None or not self.polygonsBuffer.isValid()):
-            self.polygonsBuffer, self.polygonsBufferId = self._createBufferLayer(self.polygonsLayer, self._settings.polygonsStylePath)
-
-        if (self.linesBuffer is None or not self.linesBuffer.isValid()):
-            self.linesBuffer, self.linesBufferId = self._createBufferLayer(self.linesLayer, self._settings.linesStylePath)
-
-        if (self.pointsBuffer is None or not self.pointsBuffer.isValid()):
-            self.pointsBuffer, self.pointsBufferId = self._createBufferLayer(self.pointsLayer, self._settings.pointsStylePath)
+        self.polygonsBuffer, self.polygonsBufferId = self._createBufferLayer(self.polygonsLayer, self._settings.polygonsStylePath)
+        self.linesBuffer, self.linesBufferId = self._createBufferLayer(self.linesLayer, self._settings.linesStylePath)
+        self.pointsBuffer, self.pointsBufferId = self._createBufferLayer(self.pointsLayer, self._settings.pointsStylePath)
 
         for child in grp.children():
             child.setExpanded(False)
 
     def _createBufferLayer(self, layer, stylePath):
         if (layer is not None and layer.isValid()):
-            buffer = layers.cloneAsMemoryLayer(layer, layer.name() + self._settings.bufferSuffix, stylePath)
-            if (buffer is not None and buffer.isValid()):
-                buffer = layers.addLayerToLegend(self._iface, buffer, self._buffersGroupIndex)
-                buffer.startEditing()
-                self._setDefaultSnapping(buffer)
-                return buffer, buffer.id()
+            memLayer = layers.cloneAsMemoryLayer(layer, layer.name() + self._settings.bufferSuffix, stylePath)
+            if (memLayer is not None and memLayer.isValid()):
+                memLayer = layers.addLayerToLegend(self._iface, memLayer, self._buffersGroupIndex)
+                memLayer.startEditing()
+                self._setDefaultSnapping(memLayer)
+                return memLayer, memLayer.id()
         return None, ''
 
-    def okToMergeBuffers(self):
-        return self.isCollectionEditable()
+    def isEditable(self):
+        return ((self.pointsLayer is None or layers.isEditable(self.pointsLayer))
+                and (self.linesLayer is None or layers.isEditable(self.linesLayer))
+                and (self.polygonsLayer is None or layers.isEditable(self.polygonsLayer)))
 
-    def isCollectionEditable(self):
-        return ((self.pointsLayer is None or self._isLayerEditable(self.pointsLayer)) and
-                (self.linesLayer is None or self._isLayerEditable(self.linesLayer)) and
-                (self.polygonsLayer is None or self._isLayerEditable(self.polygonsLayer)))
+    def mergeBuffers(self, undoMessage='Merge Buffers'):
+        if layers.copyAllFeatures(self.pointsBuffer, self.pointsLayer, undoMessage + ' - copy points'):
+            self._clearBuffer(self.pointsBuffer, undoMessage + ' - delete points')
+        if layers.copyAllFeatures(self.linesBuffer, self.linesLayer, undoMessage + ' - copy lines'):
+            self._clearBuffer(self.linesBuffer, undoMessage + ' - delete lines')
+        if layers.copyAllFeatures(self.polygonsBuffer, self.polygonsLayer, undoMessage + ' - copy polygons'):
+            self._clearBuffer(self.polygonsBuffer, undoMessage + ' - delete polygons')
 
-    def _isLayerEditable(self, layer):
-        if (layer is None or not layer.isValid()):
-            utils.showCriticalMessage(self._iface, 'Cannot edit layer - Not a layer object')
-            return False
-        if (layer is None or not layer.isValid()):
-            utils.showCriticalMessage(self._iface, 'Cannot edit layer ' + layer.name() + ' - Not a valid layer')
-            return False
-        if (layer.type() != QgsMapLayer.VectorLayer):
-            utils.showCriticalMessage(self._iface, 'Cannot edit layer ' + layer.name() + ' - Not a vector layer')
-            return False
-        if (layer.isModified()):
-            utils.showCriticalMessage(self._iface, 'Cannot edit layer ' + layer.name() + ' - Has pending modifications')
-            return False
-        # We don't check here as can turn filter off temporarily
-        #if (layer.subsetString()):
-        #    utils.showCriticalMessage(self._iface, 'Cannot edit layer ' + layer.name() + ' - Filter is applied')
-        #    return False
-        if (len(layer.vectorJoins()) > 0):
-            utils.showCriticalMessage(self._iface, 'Cannot edit layer ' + layer.name() + ' - Layer has joins')
-            return False
-        return True
-
-    def mergeBuffers(self, undoMessage):
-        if layers.copyAllFeatures(self.pointsBuffer, self.pointsLayer, undoMessage + ' - points'):
-            self._clearBuffer(self.pointsBuffer, undoMessage + ' - points')
-        if layers.copyAllFeatures(self.linesBuffer, self.linesLayer, undoMessage + ' - lines'):
-            self._clearBuffer(self.linesBuffer, undoMessage + ' - lines')
-        if layers.copyAllFeatures(self.polygonsBuffer, self.polygonsLayer, undoMessage + ' - polygons'):
-            self._clearBuffer(self.polygonsBuffer, undoMessage + ' - polygons')
-
-    def clearBuffers(self, undoMessage):
+    def clearBuffers(self, undoMessage='Clear Buffers'):
         self._clearBuffer(self.pointsBuffer, undoMessage + ' - points')
         self._clearBuffer(self.linesBuffer, undoMessage + ' - lines')
         self._clearBuffer(self.polygonsBuffer, undoMessage + ' - polygons')
@@ -265,103 +233,54 @@ class LayerCollection:
             layer.commitChanges()
             layer.startEditing()
 
-    def moveToBuffers(self, featureRequest):
-        if (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, 'Copy point features to buffer')
-            and layers.copyFeatureRequest(featureRequest, self.linesLayer, self.linesBuffer, 'Copy line features to buffer')
-            and layers.copyFeatureRequest(featureRequest, self.polygonsLayer, self.polygonsBuffer, 'Copy polygon features to buffer')):
-            layers.deleteFeatureRequest(featureRequest, self.pointsLayer, 'Delete point features')
-            layers.deleteFeatureRequest(featureRequest, self.linesLayer, 'Delete line features')
-            layers.deleteFeatureRequest(featureRequest, self.polygonsLayer, 'Delete polygon features')
-        else:
-            self.clearBuffers('')
+    def moveFeatureRequestToBuffers(self, featureRequest):
+        if self.copyFeatureRequestToBuffers(featureRequest):
+            self.deleteFeatureRequest(featureRequest)
 
-    def deleteRequest(self, featureRequest):
+    def copyFeatureRequestToBuffers(self, featureRequest):
+        return (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, 'Copy point features to buffer')
+                and layers.copyFeatureRequest(featureRequest, self.linesLayer, self.linesBuffer, 'Copy line features to buffer')
+                and layers.copyFeatureRequest(featureRequest, self.polygonsLayer, self.polygonsBuffer, 'Copy polygon features to buffer'))
+
+    def deleteFeatureRequest(self, featureRequest):
         layers.deleteFeatureRequest(featureRequest, self.pointsLayer, 'Delete point features')
         layers.deleteFeatureRequest(featureRequest, self.linesLayer, 'Delete line features')
         layers.deleteFeatureRequest(featureRequest, self.polygonsLayer, 'Delete polygon features')
 
-    def showPoints(self, status):
+    def setVisible(self, status):
+        self.setPointsVisible(status)
+        self.setLinesVisible(status)
+        self.setPolygonsVisible(status)
+
+    def setPointsVisible(self, status):
         self._iface.legendInterface().setLayerVisible(self.pointsLayer, status)
 
-    def showLines(self, status):
+    def setLinesVisible(self, status):
         self._iface.legendInterface().setLayerVisible(self.linesLayer, status)
 
-    def showPolygons(self, status):
+    def setPolygonsVisible(self, status):
         self._iface.legendInterface().setLayerVisible(self.polygonsLayer, status)
 
+    def applyFilter(self, expression):
+        self.filter = expression
+        layers.applyFilter(self._iface, self.pointsLayer, expression)
+        layers.applyFilter(self._iface, self.linesLayer, expression)
+        layers.applyFilter(self._iface, self.polygonsLayer, expression)
 
-    def applyFieldFilterRange(self, field, valueRange):
-        # TODO string versus decimal field type!
-        filter = ''
-        for cxtStr in valueRange.split():
-            clause = ''
-            if cxtStr.find('-') >= 0:
-                cxtList = cxtStr.split('-')
-                clause = '("%s" >= %d and "%s" <= %d)' % (field, int(cxtList[0]), field, int(cxtList[1]))
-            else:
-                clause = '"%s" = %d' % (field, int(cxtStr))
-            if filter:
-                filter += ' or '
-            filter += clause
-        self.applyFilter(filter)
-
-
-    def applyFieldFilterList(self, field, valueList):
-        # TODO string versus decimal field type!
-        clause = '"' + field + '" = %d'
-        filter = ''
-        if (len(valueList) > 0):
-            filter += clause % valueList[0]
-            for value in valueList[1:]:
-                filter += ' or '
-                filter += clause % value
-        self.applyFilter(filter)
-
-
-    def applyFilter(self, filter):
-        self.filter = filter
-        self._applyLayerFilter(self.pointsLayer, self.filter)
-        self._applyLayerFilter(self.linesLayer, self.filter)
-        self._applyLayerFilter(self.polygonsLayer, self.filter)
-
-
-    def _applyLayerFilter(self, layer, filter):
-        if (layer is None or not layer.isValid()):
-            return
-        self._iface.mapCanvas().stopRendering()
-        if (layer.type() != QgsMapLayer.VectorLayer):
-            utils.showMessage(self._iface, 'Cannot apply filter: Not a vector layer', QgsMessageBar.WARNING, 3)
-            return
-        if (layer.isEditable()):
-            utils.showMessage(self._iface, 'Cannot apply filter: Layer is in editing mode', QgsMessageBar.WARNING, 3)
-            return
-        if (not layer.dataProvider().supportsSubsetString()):
-            utils.showMessage(self._iface, 'Cannot apply filter: Subsets not supported by layer', QgsMessageBar.WARNING, 3)
-            return
-        if (len(layer.vectorJoins()) > 0):
-            utils.showMessage(self._iface, 'Cannot apply filter: Layer has joins', QgsMessageBar.WARNING, 3)
-            return
-        if (self._iface.mapCanvas().isDrawing()):
-            utils.showMessage(self._iface, 'Cannot apply filter: Canvas is drawing', QgsMessageBar.WARNING, 3)
-            return
-        layer.setSubsetString(filter)
-        self._iface.mapCanvas().refresh()
-        self._iface.legendInterface().refreshLayerSymbology(layer)
-
+    def clearFilter(self):
+        self.applyFilter('')
 
     def applySelection(self, expression):
         self.selection = expression
-        self._applyLayerSelection(self.pointsLayer, self.selection)
-        self._applyLayerSelection(self.linesLayer, self.selection)
-        self._applyLayerSelection(self.polygonsLayer, self.selection)
+        request = QgsFeatureRequest().setFilterExpression(expression)
+        layers.applySelectionRequest(self.pointsLayer, request)
+        layers.applySelectionRequest(self.linesLayer, request)
+        layers.applySelectionRequest(self.polygonsLayer, request)
 
-
-    def _applyLayerSelection(self, layer, expression):
-        if layer is None or not layer.isValid():
-            return
-        fit = layer.getFeatures(QgsFeatureRequest().setFilterExpression(expression))
-        layer.setSelectedFeatures([f.id() for f in fit])
-
+    def clearSelection(self):
+        self.pointsLayer.removeSelection()
+        self.linesLayer.removeSelection()
+        self.polygonsLayer.removeSelection()
 
     def zoomToExtent(self):
         extent = self.extent()
@@ -369,7 +288,6 @@ class LayerCollection:
             extent.scale(1.05)
             self._iface.mapCanvas().setExtent(extent)
             self._iface.mapCanvas().refresh()
-
 
     def extent(self):
         extent = None
@@ -380,7 +298,6 @@ class LayerCollection:
         extent = self._extendExtent(extent, self.linesBuffer)
         extent = self._extendExtent(extent, self.polygonsBuffer)
         return extent
-
 
     def _extendExtent(self, extent, layer):
         if (layer is not None and layer.isValid() and layer.featureCount() > 0 and self._iface.legendInterface().isLayerVisible(layer)):
@@ -394,37 +311,19 @@ class LayerCollection:
                 extent.combineExtentWith(layerExtent)
         return extent
 
-
     def uniqueValues(self, fieldName):
         vals = set()
-        vals.update(self._uniqueValues(self.pointsLayer, fieldName))
-        vals.update(self._uniqueValues(self.linesLayer, fieldName))
-        vals.update(self._uniqueValues(self.polygonsLayer, fieldName))
+        vals.update(layers.uniqueValues(self.pointsLayer, fieldName))
+        vals.update(layers.uniqueValues(self.linesLayer, fieldName))
+        vals.update(layers.uniqueValues(self.polygonsLayer, fieldName))
         return list(vals)
 
-
-    def _uniqueValues(self, layer, fieldName):
-        return layer.uniqueValues(layer.fieldNameIndex(fieldName))
-
-
     def updateAttribute(self, attribute, value, expression=None):
-        self._updateAttribute(self.pointsLayer, attribute, value, expression)
-        self._updateAttribute(self.linesLayer, attribute, value, expression)
-        self._updateAttribute(self.polygonsLayer, attribute, value, expression)
-
+        layers.updateAttribute(self.pointsLayer, attribute, value, expression)
+        layers.updateAttribute(self.linesLayer, attribute, value, expression)
+        layers.updateAttribute(self.polygonsLayer, attribute, value, expression)
 
     def updateBufferAttribute(self, attribute, value, expression=None):
-        self._updateAttribute(self.pointsBuffer, attribute, value, expression)
-        self._updateAttribute(self.linesBuffer, attribute, value, expression)
-        self._updateAttribute(self.polygonsBuffer, attribute, value, expression)
-
-
-    def _updateAttribute(self, layer, attribute, value, expression=None):
-        idx = layer.fieldNameIndex(attribute)
-        fit = None
-        if expression is None or expression == '':
-            fit = layer.getFeatures()
-        else:
-            fit = layer.getFeatures(QgsFeatureRequest().setFilterExpression(expression))
-        for f in fit:
-            layer.changeAttributeValue(f.id(), idx, value)
+        layers.updateAttribute(self.pointsBuffer, attribute, value, expression)
+        layers.updateAttribute(self.linesBuffer, attribute, value, expression)
+        layers.updateAttribute(self.polygonsBuffer, attribute, value, expression)

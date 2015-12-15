@@ -266,7 +266,7 @@ def copyFeatureIds(featureIds, fromLayer, toLayer, undoMessage='Copy features'):
     if fromSubset:
         fromLayer.setSubsetString('')
     if toSubset:
-        fromLayer.setSubsetString('')
+        toLayer.setSubsetString('')
     # Select the requested features
     fromLayer.select(featureIds)
     # Copy the selected features
@@ -307,7 +307,7 @@ def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features'):
     if fromSubset:
         fromLayer.setSubsetString('')
     if toSubset:
-        fromLayer.setSubsetString('')
+        toLayer.setSubsetString('')
     # Select the requested features
     fromLayer.selectAll()
     # Copy the selected features
@@ -451,3 +451,43 @@ def insertChildGroup(parentGroupName, childGroupName, childIndex):
     if parent is None:
         return None
     return parent.insertGroup(childIndex, childGroupName)
+
+def applyFilter(iface, layer, expression):
+    if (layer is None or not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer):
+        return
+    iface.mapCanvas().stopRendering()
+    layer.setSubsetString(expression)
+    layer.updateExtents()
+    iface.legendInterface().refreshLayerSymbology(layer)
+
+def applyFilterRequest(layer, request):
+    applyFilter(request.filterExpression().dump())
+
+def applySelection(layer, expression):
+    request = QgsFeatureRequest().setFilterExpression(expression)
+    applySelectionRequest(layer, request)
+
+def applySelectionRequest(layer, request):
+    if (layer is None or not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer):
+        return
+    fit = layer.getFeatures(request)
+    layer.setSelectedFeatures([f.id() for f in fit])
+
+def uniqueValues(layer, fieldName):
+    return layer.uniqueValues(layer.fieldNameIndex(fieldName))
+
+def updateAttribute(layer, attribute, value, expression=None):
+    idx = layer.fieldNameIndex(attribute)
+    fit = None
+    if expression is None or expression == '':
+        fit = layer.getFeatures()
+    else:
+        fit = layer.getFeatures(QgsFeatureRequest().setFilterExpression(expression))
+    for f in fit:
+        layer.changeAttributeValue(f.id(), idx, value)
+
+def isEditable(layer):
+    if (layer is None or not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer
+        or layer.isModified() or len(layer.vectorJoins()) > 0):
+        return False
+    return True
