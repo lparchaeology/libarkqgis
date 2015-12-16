@@ -51,7 +51,7 @@ class Snapping():
     AllLayers = 1
     SelectedLayers = 2
 
-    # SnappingType == QgsSnapper.SnappingType, plus Off, keep values teh same
+    # SnappingType == QgsSnapper.SnappingType, plus Off, keep values the same
     Vertex = 0
     Segment = 1
     VertexAndSegment = 2
@@ -93,24 +93,12 @@ class Snapping():
     def defaultSnappingType(defaultValue=Off):
         defaultValue = Snapping._toDefaultSnapType(defaultValue)
         value = QSettings().value('/qgis/digitizing/default_snap_mode', defaultValue , str)
-        return Snapping._fromDefaultSnapType(value)
+        return Snapping._fromSnapType(value)
 
     @staticmethod
     def setDefaultSnappingType(snapType=Off):
         snapType = Snapping._toDefaultSnapType(snapType)
         return QSettings().setValue('/qgis/digitizing/default_snap_mode', snapType, str)
-
-    @staticmethod
-    def _fromDefaultSnapType(val):
-        if val == 'off':
-            return Snapping.Off
-        elif val == 'to vertex':
-            return Snapping.Vertex
-        elif val == 'to segment':
-            return Snapping.Segment
-        elif val == 'to vertex and segment':
-            return Snapping.VertexAndSegment
-        return Snapping.Off
 
     @staticmethod
     def _toDefaultSnapType(val):
@@ -129,22 +117,22 @@ class Snapping():
     @staticmethod
     def projectSnappingType(defaultValue=Off):
         defaultValue = Snapping.defaultSnappingType(defaultValue)
-        value = Project.readEntry("Digitizing", "/DefaultSnapType", Snapping._toSnapType(defaultValue));
+        value = Project.readEntry("Digitizing", "/DefaultSnapType", Snapping._toDefaultSnapType(defaultValue));
         return Snapping._fromSnapType(value)
 
     @staticmethod
     def setProjectSnappingType(snapType=Off):
-        return Project.writeEntry("Digitizing", "/DefaultSnapType", Snapping._toSnapType(snapType));
+        return Project.writeEntry("Digitizing", "/DefaultSnapType", Snapping._toDefaultSnapType(snapType));
 
     @staticmethod
     def _fromSnapType(value):
         if value == 'off':
             return Snapping.Off
-        elif value == 'to_vertex':
+        elif value == 'to_vertex' or value == 'to vertex':
             return Snapping.Vertex
-        elif value == 'to_segment':
+        elif value == 'to_segment' or value == 'to segment':
             return Snapping.Segment
-        elif value == 'to_vertex_and_segment':
+        elif value == 'to_vertex_and_segment' or value == 'to vertex and segment':
             return Snapping.VertexAndSegment
         return Snapping.Off
 
@@ -543,6 +531,8 @@ class TopologicalEditingAction(QAction):
     """QAction to toggle Topological Editing for a project
     """
 
+    topologicalEditingChanged = pyqtSignal(bool)
+
     def __init__(self, parent=None):
         """Initialises the Topological Editing Action
 
@@ -560,26 +550,33 @@ class TopologicalEditingAction(QAction):
         self._project = QgsProject.instance()
 
         self._refresh()
-        self.toggled.connect(self._toggled)
+        self.triggered.connect(self._triggered)
 
         # Make sure we catch changes in the main snapping dialog
         self._project.snapSettingsChanged.connect(self._refresh)
         # If a new _project is read, update to that _project's setting
         self._project.readProject.connect(self._refresh)
+        # If we change the settings, make such others are told
+        self.topologicalEditingChanged.connect(self._project.snapSettingsChanged)
 
     # Private API
 
-    def _toggled(self, status):
-        self._project.setTopologicalEditing(status)
+    def _triggered(self, status):
+        Snapping.setTopologicalEditing(status)
+        self.topologicalEditingChanged.emit(status)
 
     def _refresh(self):
-        self.setChecked(self._project.topologicalEditing())
+        self.blockSignals(True)
+        self.setChecked(Snapping.topologicalEditing())
+        self.blockSignals(False)
 
 
 class IntersectionSnappingAction(QAction):
 
     """QAction to toggle Intersection Snapping for a project
     """
+
+    intersectionSnappingChanged = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         """Initialises the Intersection Snapping Action
@@ -598,20 +595,25 @@ class IntersectionSnappingAction(QAction):
         self._project = QgsProject.instance()
 
         self._refresh()
-        self.toggled.connect(self._toggled)
+        self.triggered.connect(self._triggered)
 
         # Make sure we catch changes in the main snapping dialog
         self._project.snapSettingsChanged.connect(self._refresh)
         # If a new _project is read, update to that _project's setting
         self._project.readProject.connect(self._refresh)
+        # If we change the settings, make such others are told
+        self.intersectionSnappingChanged.connect(self._project.snapSettingsChanged)
 
     # Private API
 
-    def _toggled(self, status):
+    def _triggered(self, status):
         Snapping.setIntersectionSnapping(status)
+        self.intersectionSnappingChanged.emit(status)
 
     def _refresh(self):
+        self.blockSignals(True)
         self.setChecked(Snapping.intersectionSnapping())
+        self.blockSignals(False)
 
 # Snapping Widgets
 
