@@ -37,7 +37,6 @@ from PyQt4.QtCore import Qt, pyqtSignal, QSettings
 from PyQt4.QtGui import QToolButton, QMenu, QIcon, QAction, QActionGroup, QWidgetAction, QDoubleSpinBox, QComboBox
 
 from qgis.core import QGis, QgsProject, QgsMapLayer, QgsMessageLog, QgsMapLayerRegistry
-from qgis.gui import QgsMessageBar
 
 from project import Project
 
@@ -58,7 +57,7 @@ class Snapping():
     VertexAndSegment = 2
     Off = 3
 
-    # SnappingUnits == QgsTolerance.UnitType, keep values the same
+    # SnappingUnit == QgsTolerance.UnitType, keep values the same
     LayerUnits = 0
     Pixels = 1
     ProjectUnits = 2
@@ -278,25 +277,218 @@ class Snapping():
         layerIdList = Project.readListEntry("Digitizing", "/LayerSnappingList")
         enabledList = Project.readListEntry("Digitizing", "/LayerSnappingEnabledList")
         for idx in range(0, len(layerIdList)):
-            if enabledList[idx] == 'enabled':
+            if enabledList[idx] == u'enabled':
                 enabledLayers.append(layerIdList[idx])
         return enabledLayers
 
     @staticmethod
     def setLayerSnappingEnabledLayers(enabledLayers):
         enabledList = []
-        layerIdList, ok = Project.readListEntry("Digitizing", "/LayerSnappingList")
+        layerIdList = Project.readListEntry("Digitizing", "/LayerSnappingList")
         for layerId in layerIdList:
             if layerId in enabledLayers:
-                enabledList.append('enabled')
+                enabledList.append(u'enabled')
             else:
-                enabledList.append('disabled')
+                enabledList.append(u'disabled')
         Project.writeEntry("Digitizing", "/LayerSnappingEnabledList", enabledList)
 
 
 # Snapping Actions
 
-class SnappingToleranceAction(QWidgetAction):
+class SnappingModeAction(QAction):
+
+    """QAction to change Snapping Mode for a project
+    """
+
+    snappingModeChanged = pyqtSignal(int)
+
+    _project = QgsProject.instance()
+
+    def __init__(self, snapMode, parent=None):
+        """Initialises the Snapping Mode Action
+
+        Args:
+            snapMode (Snapping.SnappingMode): The Snapping Mode for this action
+            parent (QWidget): The parent widget, defaults to None.
+        """
+
+        super(SnappingModeAction, self).__init__(parent)
+
+        self._snapMode = snapMode
+        if snapMode == Snapping.CurrentLayer:
+            self.setText('Current Layer')
+            self.setStatusTip('Snap to current layer')
+            self._icon = QIcon(':/plugins/ark/snapLayerCurrent.png')
+        elif snapMode == Snapping.AllLayers:
+            self.setText('All Layers')
+            self.setStatusTip('Snap to all layers')
+            self._icon = QIcon(':/plugins/ark/snapLayerAll.png')
+        elif snapMode == Snapping.SelectedLayers:
+            self.setText('Selected Layers')
+            self.setStatusTip('Snap to selected layers')
+            self._icon = QIcon(':/plugins/ark/snapLayerSelected.png')
+
+        self.setIcon(self._icon)
+        self.setCheckable(True)
+
+        self._refresh()
+        self.triggered.connect(self._triggered)
+
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+        # If we change the settings, make such others are told
+        self.snappingModeChanged.connect(self._project.snapSettingsChanged)
+
+    def unload(self):
+        """Unload the action on plugin unload
+        """
+        self._project.snapSettingsChanged.disconnect(self._refresh)
+        self._project.readProject.disconnect(self._refresh)
+        self.snappingModeChanged.disconnect(self._project.snapSettingsChanged)
+
+    # Private API
+
+    def _triggered(self, checked):
+        if checked:
+            Snapping.setSnappingMode(self._snapMode)
+            self.snappingModeChanged.emit(self._snapMode)
+
+    def _refresh(self):
+        self.blockSignals(True)
+        self.setChecked(self._snapMode == Snapping.snappingMode())
+        self.blockSignals(False)
+
+class ProjectSnappingTypeAction(QAction):
+
+    """QAction to change Snapping Type for a project
+    """
+
+    snappingTypeChanged = pyqtSignal(int)
+
+    _project = QgsProject.instance()
+
+    def __init__(self, snapType, parent=None):
+        """Initialises the Snapping Type Action
+
+        Args:
+            snapType (Snapping.SnappingType): The Snapping Type for this action
+            parent (QWidget): The parent widget, defaults to None.
+        """
+
+        super(ProjectSnappingTypeAction, self).__init__(parent)
+
+        self._snapType = snapType
+        if snapType == Snapping.CurrentLayer:
+            self.setText('Vertex')
+            self.setStatusTip('Snap to vertex')
+            self._icon = QIcon(':/plugins/ark/snapVertex.png')
+        elif snapType == Snapping.AllLayers:
+            self.setText('Segment')
+            self.setStatusTip('Snap to segment')
+            self._icon = QIcon(':/plugins/ark/snapSegment.png')
+        elif snapType == Snapping.SelectedLayers:
+            self.setText('Vertex and Segment')
+            self.setStatusTip('Snap to vertex and segment')
+            self._icon = QIcon(':/plugins/ark/snapVertexSegment.png')
+
+        self.setIcon(self._icon)
+        self.setCheckable(True)
+
+        self._refresh()
+        self.triggered.connect(self._triggered)
+
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+        # If we change the settings, make such others are told
+        self.snappingTypeChanged.connect(self._project.snapSettingsChanged)
+
+    def unload(self):
+        """Unload the action on plugin unload
+        """
+        self._project.snapSettingsChanged.disconnect(self._refresh)
+        self._project.readProject.disconnect(self._refresh)
+        self.snappingTypeChanged.disconnect(self._project.snapSettingsChanged)
+
+    # Private API
+
+    def _triggered(self, checked):
+        if checked:
+            Snapping.setProjectSnappingType(self._snapType)
+            self.snappingTypeChanged.emit(self._snapType)
+
+    def _refresh(self):
+        self.blockSignals(True)
+        self.setChecked(Snapping.projectSnappingType() == self._snapType)
+        self.setEnabled(Snapping.snappingMode() != Snapping.SelectedLayers)
+        self.blockSignals(False)
+
+class ProjectSnappingUnitAction(QAction):
+
+    """QAction to change Snapping Unit for a project
+    """
+
+    snappingUnitChanged = pyqtSignal(int)
+
+    _project = QgsProject.instance()
+
+    def __init__(self, snapUnit, parent=None):
+        """Initialises the Snapping Unit Action
+
+        Args:
+            snapUnits (Snapping.SnappingUnits): The Snapping Units for this action
+            parent (QWidget): The parent widget, defaults to None.
+        """
+
+        super(ProjectSnappingUnitAction, self).__init__(parent)
+
+        self._snapUnit = snapUnit
+        if snapUnit == Snapping.Pixels:
+            self.setText('Pixels')
+            self.setStatusTip('Use pixels')
+        elif snapUnit == Snapping.LayerUnits:
+            self.setText('Layer Units')
+            self.setStatusTip('Use layer units')
+        elif snapUnit == Snapping.ProjectUnits:
+            self.setText('Project Units')
+            self.setStatusTip('Use project units')
+
+        self.setCheckable(True)
+
+        self._refresh()
+        self.triggered.connect(self._triggered)
+
+        # Make sure we catch changes in the main snapping dialog
+        self._project.snapSettingsChanged.connect(self._refresh)
+        # If a new _project is read, update to that _project's setting
+        self._project.readProject.connect(self._refresh)
+        # If we change the settings, make such others are told
+        self.snappingUnitChanged.connect(self._project.snapSettingsChanged)
+
+    def unload(self):
+        """Unload the action on plugin unload
+        """
+        self._project.snapSettingsChanged.disconnect(self._refresh)
+        self._project.readProject.disconnect(self._refresh)
+        self.snappingUnitChanged.disconnect(self._project.snapSettingsChanged)
+
+    # Private API
+
+    def _triggered(self, checked):
+        if checked:
+            Snapping.setProjectSnappingUnit(self._snapUnit)
+            self.snappingUnitChanged.emit(self._snapUnit)
+
+    def _refresh(self):
+        self.blockSignals(True)
+        self.setChecked(Snapping.projectSnappingUnit() == self._snapUnit)
+        self.setEnabled(Snapping.snappingMode() != Snapping.SelectedLayers)
+        self.blockSignals(False)
+
+class ProjectSnappingToleranceAction(QWidgetAction):
 
     """QAction to change Snapping Tolerance for a project
     """
@@ -313,7 +505,7 @@ class SnappingToleranceAction(QWidgetAction):
             parent (QWidget): The parent widget, defaults to None.
         """
 
-        super(SnappingToleranceAction, self).__init__(parent)
+        super(ProjectSnappingToleranceAction, self).__init__(parent)
 
         self._toleranceSpin = QDoubleSpinBox(parent)
         self._toleranceSpin.setDecimals(5)
@@ -334,6 +526,11 @@ class SnappingToleranceAction(QWidgetAction):
     def setInterface(self, iface):
         self._iface = iface
         self._refresh()
+
+    def unload(self):
+        self._project.snapSettingsChanged.disconnect(self._refresh)
+        self._project.readProject.disconnect(self._refresh)
+        self.snappingToleranceChanged.disconnect(self._project.snapSettingsChanged)
 
     # Private API
 
@@ -366,6 +563,7 @@ class SnappingToleranceAction(QWidgetAction):
             projectUnits = self._iface.mapCanvas().mapUnits()
             suffix = _unitToSuffix(projectUnits)
             self._toleranceSpin.setSuffix(suffix)
+        self.setEnabled(Snapping.snappingMode() != Snapping.SelectedLayers)
         self.blockSignals(False)
 
 
@@ -446,6 +644,29 @@ class IntersectionSnappingAction(QAction):
 
 # Snapping Widgets
 
+class SnappingMenu(QMenu):
+
+    """Menu to change snapping mode
+    """
+
+    def __init__(self, parent=None):
+        super(SnappingMenu, self).__init__(parent)
+
+    def keyPressEvent(self, e):
+        action = self.activeAction()
+        if ((e.key() == Qt.Key_Return or e.key() == Qt.Key_Enter)
+            and e.modifiers() == Qt.ControlModifier and action is not None and action.isEnabled()):
+            action.trigger()
+        else:
+            super(SnappingMenu, self).keyPressEvent(e)
+
+    def mouseReleaseEvent(self, e):
+        action = self.activeAction()
+        if e.modifiers() == Qt.ControlModifier and action is not None and action.isEnabled():
+            action.trigger()
+        else:
+            super(SnappingMenu, self).mouseReleaseEvent(e)
+
 class SnappingModeTool(QToolButton):
 
     """Tool button to change snapping mode
@@ -474,32 +695,42 @@ class SnappingModeTool(QToolButton):
 
         self._project = QgsProject.instance()
 
-        self._currentIcon = QIcon(':/plugins/ark/snapLayerCurrent.png')
-        self._currentAction = QAction(self._currentIcon, 'Current Layer', self)
-        self._currentAction.setStatusTip('Snap to current layer')
-        self._currentAction.setCheckable(True)
-
-        self._allIcon = QIcon(':/plugins/ark/snapLayerAll.png')
-        self._allAction = QAction(self._allIcon, 'All Layers', self)
-        self._allAction.setStatusTip('Snap to all layers')
-        self._allAction.setCheckable(True)
-
-        self._selectedIcon = QIcon(':/plugins/ark/snapLayerSelected.png')
-        self._selectedAction = QAction(self._selectedIcon, 'Selected Layers', self)
-        self._selectedAction.setStatusTip('Snap to selected layers')
-        self._selectedAction.setCheckable(True)
+        self._currentAction = SnappingModeAction(Snapping.CurrentLayer)
+        self._allAction = SnappingModeAction(Snapping.AllLayers)
+        self._selectedAction = SnappingModeAction(Snapping.SelectedLayers)
 
         self._snappingModeActionGroup = QActionGroup(self)
         self._snappingModeActionGroup.addAction(self._currentAction)
         self._snappingModeActionGroup.addAction(self._allAction)
         self._snappingModeActionGroup.addAction(self._selectedAction)
 
-        self._toleranceAction = SnappingToleranceAction(self)
+        self._vertexAction = ProjectSnappingTypeAction(Snapping.Vertex, self)
+        self._segmentAction = ProjectSnappingTypeAction(Snapping.Segment, self)
+        self._vertexSegmentAction = ProjectSnappingTypeAction(Snapping.VertexAndSegment, self)
 
-        self._menu = QMenu(self)
+        self._snappingTypeActionGroup = QActionGroup(self)
+        self._snappingTypeActionGroup.addAction(self._vertexAction)
+        self._snappingTypeActionGroup.addAction(self._segmentAction)
+        self._snappingTypeActionGroup.addAction(self._vertexSegmentAction)
+
+        self._pixelUnitsAction = ProjectSnappingUnitAction(Snapping.Pixels, self)
+        self._layerUnitsAction = ProjectSnappingUnitAction(Snapping.LayerUnits, self)
+        self._projectUnitsAction = ProjectSnappingUnitAction(Snapping.ProjectUnits, self)
+
+        self._unitTypeActionGroup = QActionGroup(self)
+        self._unitTypeActionGroup.addAction(self._pixelUnitsAction)
+        self._unitTypeActionGroup.addAction(self._layerUnitsAction)
+        self._unitTypeActionGroup.addAction(self._projectUnitsAction)
+
+        self._toleranceAction = ProjectSnappingToleranceAction(self)
+
+        self._menu = SnappingMenu(self)
         self._menu.addActions(self._snappingModeActionGroup.actions())
         self._menu.addSeparator()
+        self._menu.addActions(self._snappingTypeActionGroup.actions())
+        self._menu.addSeparator()
         self._menu.addAction(self._toleranceAction)
+        self._menu.addActions(self._unitTypeActionGroup.actions())
         self.setMenu(self._menu)
 
         self._refresh()
@@ -545,7 +776,7 @@ class SnappingModeTool(QToolButton):
         self.snapSettingsChanged.emit()
 
     def _refresh(self):
-        #FIXME Ugly workaround to the reload probem, as if signal not disconnect on deletion?
+        #FIXME Ugly workaround to the reload probem, as if signal not disconnected on deletion?
         if self is None or Snapping is None:
             return
         self.blockSignals(True)
@@ -553,9 +784,11 @@ class SnappingModeTool(QToolButton):
         snapType = Snapping.projectSnappingType()
         if snapType != Snapping.Off:
             self._prevType = snapType
-        self._selectedLayers = Snapping.layerSnappingEnabledLayers()
+        selectedLayers = Snapping.layerSnappingEnabledLayers()
+        if len(selectedLayers) > 0:
+            self._selectedLayers = selectedLayers
         if snapMode == Snapping.SelectedLayers:
-            enabled = (len(self._selectedLayers) > 0)
+            enabled = (len(selectedLayers) > 0)
             self.setChecked(enabled)
             self._setActiveAction(self._selectedAction)
         else:

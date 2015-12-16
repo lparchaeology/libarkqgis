@@ -86,4 +86,8 @@ class Project:
 
     @staticmethod
     def readListEntry(scope, key, default=[]):
-        return QgsProject.instance().readListEntry(scope, key, default)
+        ret = QgsProject.instance().readListEntry(scope, key, default)
+        if ret is None or not ret[1]:
+            return default
+        else:
+            return ret[0]
