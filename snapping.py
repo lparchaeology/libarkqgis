@@ -341,13 +341,6 @@ class SnappingModeAction(QAction):
         # If we change the settings, make such others are told
         self.snappingModeChanged.connect(self._project.snapSettingsChanged)
 
-    def unload(self):
-        """Unload the action on plugin unload
-        """
-        self._project.snapSettingsChanged.disconnect(self._refresh)
-        self._project.readProject.disconnect(self._refresh)
-        self.snappingModeChanged.disconnect(self._project.snapSettingsChanged)
-
     # Private API
 
     def _triggered(self, checked):
@@ -406,13 +399,6 @@ class ProjectSnappingTypeAction(QAction):
         # If we change the settings, make such others are told
         self.snappingTypeChanged.connect(self._project.snapSettingsChanged)
 
-    def unload(self):
-        """Unload the action on plugin unload
-        """
-        self._project.snapSettingsChanged.disconnect(self._refresh)
-        self._project.readProject.disconnect(self._refresh)
-        self.snappingTypeChanged.disconnect(self._project.snapSettingsChanged)
-
     # Private API
 
     def _triggered(self, checked):
@@ -468,13 +454,6 @@ class ProjectSnappingUnitAction(QAction):
         # If we change the settings, make such others are told
         self.snappingUnitChanged.connect(self._project.snapSettingsChanged)
 
-    def unload(self):
-        """Unload the action on plugin unload
-        """
-        self._project.snapSettingsChanged.disconnect(self._refresh)
-        self._project.readProject.disconnect(self._refresh)
-        self.snappingUnitChanged.disconnect(self._project.snapSettingsChanged)
-
     # Private API
 
     def _triggered(self, checked):
@@ -527,11 +506,6 @@ class ProjectSnappingToleranceAction(QWidgetAction):
         self._iface = iface
         self._refresh()
 
-    def unload(self):
-        self._project.snapSettingsChanged.disconnect(self._refresh)
-        self._project.readProject.disconnect(self._refresh)
-        self.snappingToleranceChanged.disconnect(self._project.snapSettingsChanged)
-
     # Private API
 
     def _changed(self, _tolerance):
@@ -539,9 +513,6 @@ class ProjectSnappingToleranceAction(QWidgetAction):
         self.snappingToleranceChanged.emit(self._toleranceSpin.value())
 
     def _refresh(self):
-        #FIXME Ugly workaround to the reload probem, as if signal not disconnect on deletion?
-        if self is None or Snapping is None:
-            return
         self.blockSignals(True)
         self._toleranceSpin.setValue(Snapping.projectSnappingTolerance())
         unit = Snapping.projectSnappingUnit()
@@ -746,6 +717,9 @@ class SnappingModeTool(QToolButton):
         self._project.readProject.connect(self._refresh)
         self.snapSettingsChanged.connect(self._project.snapSettingsChanged)
 
+    def setInterface(self, iface):
+        self._toleranceAction.setInterface(iface)
+
     # Private API
 
     def _snappingToggled(self, checked):
@@ -776,9 +750,6 @@ class SnappingModeTool(QToolButton):
         self.snapSettingsChanged.emit()
 
     def _refresh(self):
-        #FIXME Ugly workaround to the reload probem, as if signal not disconnected on deletion?
-        if self is None or Snapping is None:
-            return
         self.blockSignals(True)
         snapMode = Snapping.snappingMode()
         snapType = Snapping.projectSnappingType()
