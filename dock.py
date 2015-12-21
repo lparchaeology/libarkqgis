@@ -41,7 +41,7 @@ class ArkDockWidget(QDockWidget):
     _menuAction = None  # QAction
     _dockLocation = None  # Qt.DockWidgetArea
 
-    def __init__(self, iface, parent=None):
+    def __init__(self, parent=None):
         super(ArkDockWidget, self).__init__(parent)
 
     def initGui(self, iface, location, menuAction):
