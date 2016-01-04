@@ -24,7 +24,7 @@
  ***************************************************************************/
 """
 
-from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import pyqtSignal, QFileInfo
 from PyQt4.QtGui import QDialog, QComboBox, QDialogButtonBox
 from PyQt4.QtXml import QDomImplementation, QDomDocument
 
@@ -219,7 +219,7 @@ def wkbToMemoryType(wkbType):
 
 def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy features'):
     ok = False
-    if (fromLayer is None or not fromLayer.isValid() or toLayer is None or not toLayer.isValid()):
+    if isInvalid(fromLayer) or not isWritable(toLayer):
         return ok
     # Stash the current subset
     fromSubset = fromLayer.subsetString()
@@ -258,7 +258,7 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
 
 def copyFeatureIds(featureIds, fromLayer, toLayer, undoMessage='Copy features'):
     ok = False
-    if (fromLayer is None or not fromLayer.isValid() or toLayer is None or not toLayer.isValid()):
+    if isInvalid(fromLayer) or not isWritable(toLayer):
         return ok
     # Stash the current selection and subset
     prevSelect = fromLayer.selectedFeaturesIds()
@@ -272,7 +272,7 @@ def copyFeatureIds(featureIds, fromLayer, toLayer, undoMessage='Copy features'):
     # Select the requested features
     fromLayer.select(featureIds)
     # Copy the selected features
-    if (fromLayer.selectedFeatureCount() > 0):
+    if fromLayer.selectedFeatureCount() > 0:
         wasEditing = toLayer.isEditable()
         if wasEditing or toLayer.startEditing():
             toLayer.beginEditCommand(undoMessage)
@@ -299,7 +299,7 @@ def copyFeatureIds(featureIds, fromLayer, toLayer, undoMessage='Copy features'):
 
 def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features'):
     ok = False
-    if (fromLayer is None or not fromLayer.isValid() or toLayer is None or not toLayer.isValid()):
+    if isInvalid(fromLayer) or not isWritable(toLayer):
         return ok
     # Stash the current selection and subset
     prevSelect = fromLayer.selectedFeaturesIds()
@@ -313,7 +313,7 @@ def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features'):
     # Select the requested features
     fromLayer.selectAll()
     # Copy the selected features
-    if (fromLayer.selectedFeatureCount() > 0):
+    if fromLayer.selectedFeatureCount() > 0:
         wasEditing = toLayer.isEditable()
         if wasEditing or toLayer.startEditing():
             toLayer.beginEditCommand(undoMessage)
@@ -340,7 +340,7 @@ def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features'):
 
 def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features'):
     ok = False
-    if layer is None or not layer.isValid():
+    if not isWritable(layer):
         return ok
     # Stash the current subset
     subset = layer.subsetString()
@@ -374,7 +374,7 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features'):
 
 def deleteFeatureIds(featureIds, layer, undoMessage='Delete features'):
     ok = False
-    if layer is None or not layer.isValid():
+    if not isWritable(layer):
         return ok
     # Stash the current subset
     subset = layer.subsetString()
@@ -401,7 +401,7 @@ def deleteFeatureIds(featureIds, layer, undoMessage='Delete features'):
 
 def deleteAllFeatures(layer, undoMessage='Delete features'):
     ok = False
-    if layer is None or not layer.isValid():
+    if not isWritable(layer):
         return ok
     # Stash the current selection and subset
     prevSelect = layer.selectedFeaturesIds()
@@ -488,8 +488,22 @@ def updateAttribute(layer, attribute, value, expression=None):
     for f in fit:
         layer.changeAttributeValue(f.id(), idx, value)
 
-def isEditable(layer):
-    if (layer is None or not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer
-        or layer.isModified() or len(layer.vectorJoins()) > 0):
+def isValid(layer):
+    return (layer is not None and layer.isValid() and layer.type() == QgsMapLayer.VectorLayer)
+
+def isInvalid(layer):
+    return not isValid(layer)
+
+def isWritable(layer):
+    if isInvalid(layer) or len(layer.vectorJoins()) > 0:
         return False
+    if layer.storageType() == 'ESRI Shapefile':
+        sourceList = layer.source().split('|')
+        shpFile = QFileInfo(sourceList[0])
+        baseFilePath = shpFile.canonicalPath() + '/' + shpFile.completeBaseName()
+        shxFile = QFileInfo(baseFilePath + '.shx')
+        dbfFile = QFileInfo(baseFilePath + '.dbf')
+        return (shpFile.exists() and shpFile.isWritable()
+                and shxFile.exists() and shxFile.isWritable()
+                and dbfFile.exists() and dbfFile.isWritable())
     return True

@@ -211,10 +211,10 @@ class LayerCollection:
                 return memLayer, memLayer.id()
         return None, ''
 
-    def isEditable(self):
-        return ((self.pointsLayer is None or layers.isEditable(self.pointsLayer))
-                and (self.linesLayer is None or layers.isEditable(self.linesLayer))
-                and (self.polygonsLayer is None or layers.isEditable(self.polygonsLayer)))
+    def isWritable(self):
+        return ((self.pointsLayer is None or layers.isWritable(self.pointsLayer))
+                and (self.linesLayer is None or layers.isWritable(self.linesLayer))
+                and (self.polygonsLayer is None or layers.isWritable(self.polygonsLayer)))
 
     def mergeBuffers(self, undoMessage='Merge Buffers'):
         if layers.copyAllFeatures(self.pointsBuffer, self.pointsLayer, undoMessage + ' - copy points'):
@@ -230,8 +230,7 @@ class LayerCollection:
         self._clearBuffer(self.polygonsBuffer, undoMessage + ' - polygons')
 
     def _clearBuffer(self, layer, undoMessage):
-        ok = layers.deleteAllFeatures(layer, undoMessage)
-        if ok:
+        if layers.deleteAllFeatures(layer, undoMessage):
             layer.commitChanges()
             layer.startEditing()
 
