@@ -217,12 +217,20 @@ class LayerCollection:
                 and (self.polygonsLayer is None or layers.isWritable(self.polygonsLayer)))
 
     def mergeBuffers(self, undoMessage='Merge Buffers'):
+        merge = True
         if layers.copyAllFeatures(self.pointsBuffer, self.pointsLayer, undoMessage + ' - copy points'):
             self._clearBuffer(self.pointsBuffer, undoMessage + ' - delete points')
+        else:
+            merge = False
         if layers.copyAllFeatures(self.linesBuffer, self.linesLayer, undoMessage + ' - copy lines'):
             self._clearBuffer(self.linesBuffer, undoMessage + ' - delete lines')
+        else:
+            merge = False
         if layers.copyAllFeatures(self.polygonsBuffer, self.polygonsLayer, undoMessage + ' - copy polygons'):
             self._clearBuffer(self.polygonsBuffer, undoMessage + ' - delete polygons')
+        else:
+            merge = False
+        return merge
 
     def clearBuffers(self, undoMessage='Clear Buffers'):
         self._clearBuffer(self.pointsBuffer, undoMessage + ' - points')
@@ -230,9 +238,7 @@ class LayerCollection:
         self._clearBuffer(self.polygonsBuffer, undoMessage + ' - polygons')
 
     def _clearBuffer(self, layer, undoMessage):
-        if layers.deleteAllFeatures(layer, undoMessage):
-            layer.commitChanges()
-            layer.startEditing()
+        return layers.deleteAllFeatures(layer, undoMessage) and layer.commitChanges() and layer.startEditing()
 
     def moveFeatureRequestToBuffers(self, featureRequest):
         if self.copyFeatureRequestToBuffers(featureRequest):
