@@ -279,9 +279,12 @@ class LayerCollection:
         layers.applySelectionRequest(self.polygonsLayer, request)
 
     def clearSelection(self):
-        self.pointsLayer.removeSelection()
-        self.linesLayer.removeSelection()
-        self.polygonsLayer.removeSelection()
+        if self.pointsLayer:
+            self.pointsLayer.removeSelection()
+        if self.linesLayer:
+            self.linesLayer.removeSelection()
+        if self.polygonsLayer:
+            self.polygonsLayer.removeSelection()
 
     def zoomToExtent(self):
         extent = self.extent()
