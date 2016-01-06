@@ -40,24 +40,32 @@ import resources_rc
 class Plugin(QObject):
     """QGIS Plugin Base Class."""
 
-    # MenuType enum
-    PluginsMenu = 0
-    DatabaseMenu = 1
-    RasterMenu = 2
-    VectorMenu = 3
-    WebMenu = 4
+    # InterfaceGroup enum
+    OwnGroup = 0
+    PluginsGroup = 1
+    DatabaseGroup = 2
+    RasterGroup = 3
+    VectorGroup = 4
+    WebGroup = 5
 
     # Public variables
     iface = None  # QgsInteface()
+    pluginAction = None # QAction()
     pluginName = ''
     pluginPath = ''
     pluginIconPath = ''
     displayName = ''
-    menuType = 0  # MenuType
-    actions = []
-    toolbar = None  # QToolBar()
 
-    def __init__(self, iface, pluginName, pluginIconPath, pluginPath, menuType, parent=None):
+    # Private variables
+    _actions = []
+    _checkable = False
+    _menuGroup = 0  # MenuType
+    _menu = None # QMenu()
+    _toolbarGroup = 0  # MenuType
+    _toolbar = None  # QToolBar()
+
+    def __init__(self, iface, pluginName, pluginIconPath, pluginPath,
+                 menuGroup=PluginsGroup, toolbarGroup=PluginsGroup, checkable=False, parent=None):
         """Constructor.
 
         :param iface: An interface instance that will be passed to this class
@@ -74,51 +82,97 @@ class Plugin(QObject):
         :param pluginIconPath: Plugin icon path, either file or resource.
         :type pluginIconPath: str
 
-        :param menuType: The menu type to add the plugin to.
-        :type menuType: int
+        :param menuGroup: The menu group to add the plugin to.
+        :type menuGroup: int
+
+        :param toolbarGroup: The toolbar group to add the plugin to.
+        :type toolbarGroup: int
+
+        :param checkable: If the plugin action is checkable, set to True for a dock or map tool, set to False for a dialog or single-shot function.
+        :type checkable: bool
         """
         super(Plugin, self).__init__(parent)
         self.iface = iface
         self.pluginName = pluginName
         self.pluginPath = pluginPath
         self.pluginIconPath = pluginIconPath
-        self.menuType = menuType
+        self._menuGroup = menuGroup
+        self._toolbarGroup = toolbarGroup
+        self._checkable = checkable
 
-        # initialize locale
+        # initialize translation
         locale = QSettings().value('locale/userLocale')[0:2]
-        locale_path = os.path.join(self.pluginPath, 'i18n', 'ArkGrid_{}.qm'.format(locale))
+        locale_path = os.path.join(self.pluginPath, 'i18n', self.pluginName + '_{}.qm'.format(locale))
         if os.path.exists(locale_path):
             self.translator = QTranslator()
             self.translator.load(locale_path)
             QCoreApplication.installTranslator(self.translator)
 
-        # Declare instance attributes
-        self.toolbar = self.iface.addToolBar(self.pluginName)
-        self.toolbar.setObjectName(self.pluginName)
-
     def setDisplayName(self, name):
         """Set the translated display to be used in the menu and elsewhere
         :param name: Translated plugin name.
-        :type name: str, QString
+        :type name: str
         """
         self.displayName = name
 
-    # noinspection PyMethodMayBeStatic
-    def tr(self, message):
-        """Get the translation for a string using Qt translation API.
+    def initGui(self):
+        """Create the menu entries and toolbar icons inside the QGIS GUI."""
+        # Reimplement and call in inplementation
 
-        We implement this ourselves since we do not inherit QObject.
+        # Unload in case plugin crash durign reload left remnants behind
+        Plugin.unload(self)
 
-        :param message: String for translation.
-        :type message: str, QString
+        if self._menuGroup == Plugin.OwnGroup:
+            self._menu = self.iface.mainWindow().menuBar().addMenu(self.pluginName)
+            self._menu.setObjectName(self.pluginName)
+        if self._toolbarGroup == Plugin.OwnGroup:
+            self._toolbar = self.iface.addToolBar(self.pluginName)
+            self._toolbar.setObjectName(self.pluginName)
 
-        :returns: Translated version of message.
-        :rtype: QString
-        """
-        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate(self.pluginName, message)
+        self.pluginAction = self.addNewAction(self.pluginIconPath, self.displayName, callback=self.run, checkable=self._checkable)
 
-    def addAction(
+    def unload(self):
+        """Removes the plugin menu item and icon from QGIS GUI."""
+        # Reimplement and call in inplementation
+        for action in self._actions:
+
+            if self._menuGroup == Plugin.OwnGroup or self._menuGroup == Plugin.PluginsGroup:
+                self.iface.removePluginMenu(self.displayName, action)
+            elif self._menuGroup == Plugin.DatabaseMenu:
+                self.iface.removePluginDatabaseMenu(self.displayName, action)
+            elif self._menuGroup == Plugin.RasterMenu:
+                self.iface.removePluginRasterMenu(self.displayName, action)
+            elif self._menuGroup == Plugin.VectorMenu:
+                self.iface.removePluginVectorMenu(self.displayName, action)
+            elif self._menuGroup == Plugin.WebMenu:
+                self.iface.removePluginWebMenu(self.displayName, action)
+
+            if self._toolbarGroup == Plugin.OwnGroup:
+                self._toolbar.removeAction(action)
+            elif self._toolbarGroup == Plugin.PluginsGroup:
+                self.iface.removeToolBarIcon(action)
+            elif self._toolbarGroup == Plugin.DatabaseMenu:
+                self.iface.removeDatabaseToolBarIcon(action)
+            elif self._toolbarGroup == Plugin.RasterMenu:
+                self.iface.removeRasterToolBarIcon(action)
+            elif self._toolbarGroup == Plugin.VectorMenu:
+                self.iface.removeVectorToolBarIcon(action)
+            elif self._toolbarGroup == Plugin.WebMenu:
+                self.iface.removeWebToolBarIcon(action)
+
+        # remove the menu
+        if self._menu:
+            del self._menu
+        # remove the toolbar
+        if self._toolbar:
+            del self._toolbar
+
+    def run(self):
+        """Run method that performs all the real work"""
+        # Reimplement in inplementation
+        pass
+
+    def addNewAction(
         self,
         iconPath,
         text,
@@ -151,92 +205,92 @@ class Plugin(QObject):
         :type chenckable: bool
 
         :param addToMenu: Flag indicating whether the action should also
-            be added to the menu. Defaults to True.
+            be added to the plugin menu. Defaults to True.
         :type addToMenu: bool
 
         :param addToToolbar: Flag indicating whether the action should also
-            be added to the toolbar. Defaults to True.
+            be added to the plugin toolbar. Defaults to True.
         :type addToToolbar: bool
 
         :param tip: Optional text to show in a popup when mouse pointer
             hovers over the action.
         :type tip: str
 
-        :param parent: Parent widget for the new action. Defaults None.
-        :type parent: QWidget
-
         :param whatsThis: Optional text to show in the status bar when the
             mouse pointer hovers over the action.
 
+        :param parent: Parent widget for the new action. Defaults None.
+        :type parent: QWidget
+
         :returns: The action that was created. Note that the action is also
-            added to self.actions list.
+            added to self._actions list.
         :rtype: QAction
         """
 
-        icon = QIcon(iconPath)
         if parent is None:
             parent = self.iface.mainWindow()
-        action = QAction(icon, text, parent)
+        action = QAction(QIcon(iconPath), text, parent)
+        if tip is not None:
+            action.setStatusTip(tip)
+        if whatsThis is not None:
+            action.setWhatsThis(whatsThis)
+
         if callback is not None:
             action.triggered.connect(callback)
         action.setEnabled(enabled)
         action.setCheckable(checkable)
 
-        if tip is not None:
-            action.setStatusTip(tip)
-
-        if whatsThis is not None:
-            action.setWhatsThis(whatsThis)
-
-        if addToToolbar:
-            if self.toolbar is None:
-                self.toolbar = self.iface.addToolBar(self.pluginName)
-                self.toolbar.setObjectName(self.pluginName)
-            self.toolbar.addAction(action)
-
-        if addToMenu:
-            if self.menuType == Plugin.PluginsMenu:
-                self.iface.addPluginToMenu(self.displayName, action)
-            elif self.menuType == Plugin.DatabaseMenu:
-                self.iface.addPluginToDatabaseMenu(self.displayName, action)
-            elif self.menuType == Plugin.RasterMenu:
-                self.iface.addPluginToRasterMenu(self.displayName, action)
-            elif self.menuType == Plugin.VectorMenu:
-                self.iface.addPluginToVectorMenu(self.displayName, action)
-            elif self.menuType == Plugin.WebMenu:
-                self.iface.addPluginToWebMenu(self.displayName, action)
-
-        self.actions.append(action)
+        self.addAction(action, addToMenu, addToToolbar)
         return action
 
-    def initGui(self):
-        """Create the menu entries and toolbar icons inside the QGIS GUI."""
-        # Reimplement and call in inplementation
-        # Unload in case plugin crash durign reload left remnants behind
-        Plugin.unload(self)
+    def addAction(self, action, addToMenu=True, addToToolbar=True):
+        """Add an action to the menu and/or toolbar.
+           Note that the action is also added to self._actions list.
 
-    def unload(self):
-        """Removes the plugin menu item and icon from QGIS GUI."""
-        # Reimplement and call in inplementation
-        for action in self.actions:
-            if self.menuType == Plugin.PluginsMenu:
-                self.iface.removePluginMenu(self.displayName, action)
-            elif self.menuType == Plugin.DatabaseMenu:
-                self.iface.removePluginDatabaseMenu(self.displayName, action)
-            elif self.menuType == Plugin.RasterMenu:
-                self.iface.removePluginRasterMenu(self.displayName, action)
-            elif self.menuType == Plugin.VectorMenu:
-                self.iface.removePluginVectorMenu(self.displayName, action)
-            elif self.menuType == Plugin.WebMenu:
-                self.iface.removePluginWebMenu(self.displayName, action)
-            self.iface.removeToolBarIcon(action)
-        # remove the toolbar
-        del self.toolbar
+        :param action: QAction that should be added
+        :type text: QAction
 
-    def run(self):
-        """Run method that performs all the real work"""
-        # Reimplement in inplementation
-        pass
+        :param addToMenu: Flag indicating whether the action should also
+            be added to the plugin menu. Defaults to True.
+        :type addToMenu: bool
+
+        :param addToToolbar: Flag indicating whether the action should also
+            be added to the plugin toolbar. Defaults to True.
+        :type addToToolbar: bool
+
+        :returns: The action that was created.
+        :rtype: QAction
+        """
+
+        if addToToolbar:
+            if self._toolbarGroup == Plugin.OwnGroup:
+                self._toolbar.addAction(action)
+            elif self._toolbarGroup == Plugin.PluginsGroup:
+                self.iface.addToolBarIcon(action)
+            elif self._toolbarGroup == Plugin.DatabaseMenu:
+                self.iface.addDatabaseToolBarIcon(action)
+            elif self._toolbarGroup == Plugin.RasterMenu:
+                self.iface.addRasterToolBarIcon(action)
+            elif self._toolbarGroup == Plugin.VectorMenu:
+                self.iface.addVectorToolBarIcon(action)
+            elif self._toolbarGroup == Plugin.WebMenu:
+                self.iface.addWebToolBarIcon(action)
+
+        if addToMenu:
+            if self._menuGroup == Plugin.OwnGroup:
+                self._menu.addAction(action)
+            elif self._menuGroup == Plugin.PluginsGroup:
+                self.iface.addPluginToMenu(self.displayName, action)
+            elif self._menuGroup == Plugin.DatabaseMenu:
+                self.iface.addPluginToDatabaseMenu(self.displayName, action)
+            elif self._menuGroup == Plugin.RasterMenu:
+                self.iface.addPluginToRasterMenu(self.displayName, action)
+            elif self._menuGroup == Plugin.VectorMenu:
+                self.iface.addPluginToVectorMenu(self.displayName, action)
+            elif self._menuGroup == Plugin.WebMenu:
+                self.iface.addPluginToWebMenu(self.displayName, action)
+
+        self._actions.append(action)
 
     # Convenience logging functions
 
@@ -309,11 +363,11 @@ class Plugin(QObject):
 # Template implementation classes, copy one of these into your main plugin file
 
 class MyPlugin(Plugin):
-    """QGIS Plugin Implementation."""
+    """QGIS Plugin Implementation for dialog or single-shot process."""
 
     def __init__(self, iface):
-        super(MyPlugin, self).__init__(iface, u'MyPlugin', ':/plugins/MyPlugin/icon.png',
-                                       os.path.dirname(__file__), Plugin.PluginsMenu)
+        super(MyPlugin, self).__init__(iface, u'MyPlugin', ':/plugins/MyPlugin/icon.png', os.path.dirname(__file__),
+                                       Plugin.PluginsGroup, Plugin.PluginsGroup)
         # Set display / menu name now we have tr() set up
         self.setDisplayName(self.tr(u'&MyPlugin'))
 
@@ -322,7 +376,6 @@ class MyPlugin(Plugin):
         super(MyPlugin, self).initGui()
 
         # Connect a simple button and menu item to your main action
-        self.addAction(self.pluginIconPath, self.displayName, self.run)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -330,17 +383,16 @@ class MyPlugin(Plugin):
         super(MyPlugin, self).unload()
 
     def run(self):
-        """Run method that performs all the real work"""
-        # Create and show the dialog or dock for the plugin, then process the result
+        """Run method when plugin action triggered"""
         pass
 
 
 class MyDockPlugin(Plugin):
-    """QGIS Plugin Implementation."""
+    """QGIS Plugin Implementation for dock."""
 
     def __init__(self, iface):
-        super(MyPlugin, self).__init__(iface, u'MyDockPlugin', ':/plugins/MyPlugin/icon.png',
-                                       os.path.dirname(__file__), Plugin.PluginsMenu)
+        super(MyPlugin, self).__init__(iface, u'MyDockPlugin', ':/plugins/MyPlugin/icon.png', os.path.dirname(__file__),
+                                       Plugin.PluginsGroup, Plugin.PluginsGroup, checkable=True)
         # Set display / menu name now we have tr() set up
         self.setDisplayName(self.tr(u'&MyPlugin'))
 
@@ -349,9 +401,7 @@ class MyDockPlugin(Plugin):
         super(MyPlugin, self).initGui()
 
         self.dock = MyDock()  # Your dock implementation derived from ArkDockWidget
-        dockAction = self.addAction(self.tr(u'Dock Name'), ':/plugins/MyPlugin/icon.png', True)
-        self.dock.load(self.iface, Qt.LeftDockWidgetArea, dockAction)
-        self.dock.toggled.connect(self.run)
+        self.dock.load(self.iface, Qt.LeftDockWidgetArea, self.pluginAction)
         self.dock.someSignal.connect(self.someMethod)
 
     def unload(self):
@@ -361,7 +411,6 @@ class MyDockPlugin(Plugin):
         super(MyPlugin, self).unload()
 
     def run(self, checked):
-        """Run method that performs all the real work"""
-        # If the dock has been enabled, do something if needed
+        """Run method when dock toggled"""
         if checked:
             pass

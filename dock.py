@@ -35,11 +35,9 @@ from PyQt4.QtGui import QDockWidget
 
 class ArkDockWidget(QDockWidget):
 
-    toggled = pyqtSignal(bool)
-
     _iface = None  # QgisInterface
-    _menuAction = None  # QAction
     _dockLocation = None  # Qt.DockWidgetArea
+    _action = None  # QAction
 
     def __init__(self, parent=None):
         super(ArkDockWidget, self).__init__(parent)
@@ -47,21 +45,17 @@ class ArkDockWidget(QDockWidget):
     def initGui(self, iface, location, menuAction):
         self._iface = iface
         self._dockLocation = location
+        self._action = menuAction
 
-        self._menuAction = menuAction
-        self._menuAction.toggled.connect(self._toggle)
-        self._menuAction.toggled.connect(self.toggled)
-
-        self.visibilityChanged.connect(self._menuAction.setChecked)
+        self._action.toggled.connect(self._toggle)
+        self.visibilityChanged.connect(self._action.setChecked)
         self.dockLocationChanged.connect(self._updateDockLocation)
 
     def unloadGui(self):
-        self._iface.removeToolBarIcon(self._menuAction)
         self._iface.removeDockWidget(self)
-        self.deleteLater()
 
     def menuAction(self):
-        return self._menuAction
+        return self._action
 
     def dockLocation(self):
         return self._dockLocation
