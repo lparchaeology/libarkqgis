@@ -252,16 +252,16 @@ class Plugin(QObject):
     def logMessage(self, text, level=QgsMessageLog.INFO):
         QgsMessageLog.logMessage(text, self.pluginName, level)
 
-    def showCriticalMessage(self, text, duration=3):
+    def showCriticalMessage(self, text, duration=5):
         self.showMessage(text, QgsMessageBar.CRITICAL, duration)
 
-    def showWarningMessage(self, text, duration=3):
+    def showWarningMessage(self, text, duration=5):
         self.showMessage(text, QgsMessageBar.WARNING, duration)
 
-    def showInfoMessage(self, text, duration=3):
+    def showInfoMessage(self, text, duration=5):
         self.showMessage(text, QgsMessageBar.INFO, duration)
 
-    def showMessage(self, text, level=QgsMessageBar.INFO, duration=3):
+    def showMessage(self, text, level=QgsMessageBar.INFO, duration=5):
         self.iface.messageBar().pushMessage(text, level, duration)
 
     def showStatusMessage(self, text):
