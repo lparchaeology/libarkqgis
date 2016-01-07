@@ -35,7 +35,9 @@ def polygonizeFeatures(features, fields=None):
     allLinesList = []
     for inFeat in features:
         inGeom = inFeat.geometry()
-        if inGeom.isMultipart():
+        if inGeom is None:
+            pass
+        elif inGeom.isMultipart():
             allLinesList.extend(inGeom.asMultiPolyline())
         else:
             allLinesList.append(inGeom.asPolyline())
