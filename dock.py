@@ -82,7 +82,7 @@ class ToolDockWidget(ArkDockWidget):
 
         self.toolbar = QToolBar(self)
         self.toolbar.setObjectName(u'toolbar')
-        self.toolbar.setIconSize(QSize(24, 24))
+        self.toolbar.setIconSize(QSize(22, 22))
 
         widget.setParent(self)
         self.widget = widget
