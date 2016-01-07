@@ -30,8 +30,8 @@ A QDockWidget for use in a QGIS Plugin
 
 import os
 
-from PyQt4.QtCore import pyqtSignal
-from PyQt4.QtGui import QDockWidget
+from PyQt4.QtCore import pyqtSignal, QSize
+from PyQt4.QtGui import QDockWidget, QWidget, QVBoxLayout, QToolBar, QSizePolicy
 
 class ArkDockWidget(QDockWidget):
 
@@ -68,3 +68,37 @@ class ArkDockWidget(QDockWidget):
             self._iface.addDockWidget(self._dockLocation, self)
         else:
             self._iface.removeDockWidget(self)
+
+class ToolDockWidget(ArkDockWidget):
+
+    toolbar = None  # QToolBar()
+    widget = None  # QWidget()
+
+    _spacer = None  # QSpacerItem()
+    _contents = None  # QWidget()
+
+    def __init__(self, widget, parent=None):
+        super(ToolDockWidget, self).__init__(parent)
+
+        self.toolbar = QToolBar(self)
+        self.toolbar.setObjectName(u'toolbar')
+        self.toolbar.setIconSize(QSize(24, 24))
+
+        widget.setParent(self)
+        self.widget = widget
+
+        self._layout = QVBoxLayout(self)
+        self._layout.setObjectName(u'layout')
+        self._layout.addWidget(self.toolbar)
+        self._layout.addWidget(self.widget)
+
+        self._contents = QWidget(self)
+        self._contents.setObjectName(u'contents')
+        self._contents.setLayout(self._layout)
+        self.setWidget(self._contents)
+
+    def initGui(self, iface, location, menuAction):
+        super(ToolDockWidget, self).initGui(iface, location, menuAction)
+
+    def unloadGui(self):
+        super(ToolDockWidget, self).unloadGui()
