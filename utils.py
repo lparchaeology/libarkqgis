@@ -36,11 +36,17 @@ def timestamp():
 
 # String utilities
 
-def quote(string):
-    return "'" + string + "'"
+def quote(val):
+    return "'" + str(val) + "'"
 
-def doublequote(string):
-    return '"' + string + '"'
+def doublequote(val):
+    return '"' + str(val) + '"'
+
+def eqClause(field, value):
+    return doublequote(field) + ' = ' + quote(value)
+
+def neClause(field, value):
+    return doublequote(field) + ' != ' + quote(value)
 
 # Message utilities
 
