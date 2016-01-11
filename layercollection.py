@@ -35,6 +35,8 @@ import utils, layers, snapping
 
 class LayerCollectionSettings:
 
+    collection = ''
+
     collectionGroupName = ''
     parentGroupName = ''
 
@@ -56,8 +58,61 @@ class LayerCollectionSettings:
     polygonsLayerPath = ''
     polygonsStylePath = ''
 
+    @staticmethod
+    def fromProject(projectScope, collection):
+        scope = projectScope + '/collections/' + collection
+        lcs = LayerCollectionSettings()
+        lcs.collection = Project.readEntry(scope, 'collection')
+        lcs.collectionGroupName = Project.readEntry(scope, 'collectionGroupName')
+        lcs.parentGroupName = Project.readEntry(scope, 'parentGroupName')
+        lcs.buffersGroupName = Project.readEntry(scope, 'buffersGroupName')
+        lcs.bufferSuffix = Project.readEntry(scope, 'bufferSuffix')
+        lcs.pointsLayerProvider = Project.readEntry(scope, 'pointsLayerProvider')
+        lcs.pointsLayerLabel = Project.readEntry(scope, 'pointsLayerLabel')
+        lcs.pointsLayerName = Project.readEntry(scope, 'pointsLayerName')
+        lcs.pointsLayerPath = Project.readEntry(scope, 'pointsLayerPath')
+        lcs.pointsStylePath = Project.readEntry(scope, 'pointsStylePath')
+        lcs.linesLayerProvider = Project.readEntry(scope, 'linesLayerProvider')
+        lcs.linesLayerLabel = Project.readEntry(scope, 'linesLayerLabel')
+        lcs.linesLayerName = Project.readEntry(scope, 'linesLayerName')
+        lcs.linesLayerPath = Project.readEntry(scope, 'linesLayerPath')
+        lcs.linesStylePath = Project.readEntry(scope, 'linesStylePath')
+        lcs.polygonsLayerProvider = Project.readEntry(scope, 'polygonsLayerProvider')
+        lcs.poolygonsLayerLabel = Project.readEntry(scope, 'poolygonsLayerLabel')
+        lcs.polygonsLayerName = Project.readEntry(scope, 'polygonsLayerName')
+        lcs.polygonsLayerPath = Project.readEntry(scope, 'polygonsLayerPath')
+        lcs.polygonsStylePath = Project.readEntry(scope, 'polygonsStylePath')
+        return lcs
+
+    @staticmethod
+    def toProject(projectScope, collection, lcs):
+        scope = projectScope + '/collections/' + lcs.collection
+        Project.writeEntry(scope, 'collection', lcs.collection)
+        Project.writeEntry(scope, 'collectionGroupName', lcs.collectionGroupName)
+        Project.writeEntry(scope, 'collectionGroupName', lcs.collectionGroupName)
+        Project.writeEntry(scope, 'parentGroupName', lcs.parentGroupName)
+        Project.writeEntry(scope, 'buffersGroupName', lcs.buffersGroupName)
+        Project.writeEntry(scope, 'bufferSuffix', lcs.bufferSuffix)
+        Project.writeEntry(scope, 'pointsLayerProvider', lcs.pointsLayerProvider)
+        Project.writeEntry(scope, 'pointsLayerLabel', lcs.pointsLayerLabel)
+        Project.writeEntry(scope, 'pointsLayerName', lcs.pointsLayerName)
+        Project.writeEntry(scope, 'pointsLayerPath', lcs.pointsLayerPath)
+        Project.writeEntry(scope, 'pointsStylePath', lcs.pointsStylePath)
+        Project.writeEntry(scope, 'linesLayerProvider', lcs.linesLayerProvider)
+        Project.writeEntry(scope, 'linesLayerLabel', lcs.linesLayerLabel)
+        Project.writeEntry(scope, 'linesLayerName', lcs.linesLayerName)
+        Project.writeEntry(scope, 'linesLayerPath', lcs.linesLayerPath)
+        Project.writeEntry(scope, 'linesStylePath', lcs.linesStylePath)
+        Project.writeEntry(scope, 'polygonsLayerProvider', lcs.polygonsLayerProvider)
+        Project.writeEntry(scope, 'poolygonsLayerLabel', lcs.poolygonsLayerLabel)
+        Project.writeEntry(scope, 'polygonsLayerName', lcs.polygonsLayerName)
+        Project.writeEntry(scope, 'polygonsLayerPath', lcs.polygonsLayerPath)
+        Project.writeEntry(scope, 'polygonsStylePath', lcs.polygonsStylePath)
+
 
 class LayerCollection:
+
+    settings = None  # LayerCollectionSettings()
 
     pointsLayer = None
     pointsLayerId = ''
@@ -76,7 +131,6 @@ class LayerCollection:
     # Internal variables
 
     _iface = None # QgsInterface()
-    _settings = LayerCollectionSettings()
     _collectionGroupIndex = -1
     _buffersGroupIndex = -1
 
@@ -85,7 +139,7 @@ class LayerCollection:
 
     def __init__(self, iface, settings):
         self._iface = iface
-        self._settings = settings
+        self.settings = settings
         # If the legend indexes change make sure we stay updated
         self._iface.legendInterface().groupIndexChanged.connect(self._groupIndexChanged)
         # If the layers are removed we need to remove them too
@@ -108,13 +162,13 @@ class LayerCollection:
             self._iface.legendInterface().removeGroup(self._buffersGroupIndex)
 
     def _removeOldBuffers(self):
-        layerId = layers.getLayerId(self._settings.pointsLayerName + self._settings.bufferSuffix)
+        layerId = layers.getLayerId(self.settings.pointsLayerName + self.settings.bufferSuffix)
         QgsMapLayerRegistry.instance().removeMapLayer(layerId)
-        layerId = layers.getLayerId(self._settings.linesLayerName + self._settings.bufferSuffix)
+        layerId = layers.getLayerId(self.settings.linesLayerName + self.settings.bufferSuffix)
         QgsMapLayerRegistry.instance().removeMapLayer(layerId)
-        layerId = layers.getLayerId(self._settings.polygonsLayerName + self._settings.bufferSuffix)
+        layerId = layers.getLayerId(self.settings.polygonsLayerName + self.settings.bufferSuffix)
         QgsMapLayerRegistry.instance().removeMapLayer(layerId)
-        buffersGroupIndex = layers.getGroupIndex(self._iface, self._settings.buffersGroupName)
+        buffersGroupIndex = layers.getGroupIndex(self._iface, self.settings.buffersGroupName)
         if buffersGroupIndex >= 0:
             self._iface.legendInterface().removeGroup(buffersGroupIndex)
 
@@ -173,10 +227,10 @@ class LayerCollection:
     # Load the collection layers if not already loaded
     def loadCollection(self):
         if (self._collectionGroupIndex < 0):
-            self._collectionGroupIndex = layers.createLayerGroup(self._iface, self._settings.collectionGroupName, self._settings.parentGroupName)
-        self.polygonsLayer, self.polygonsLayerId = self._loadLayer(self._settings.polygonsLayerName, self._settings.polygonsLayerPath, self._settings.polygonsLayerProvider, self._settings.polygonsStylePath, self._collectionGroupIndex)
-        self.linesLayer, self.linesLayerId = self._loadLayer(self._settings.linesLayerName, self._settings.linesLayerPath, self._settings.linesLayerProvider, self._settings.linesStylePath, self._collectionGroupIndex)
-        self.pointsLayer, self.pointsLayerId = self._loadLayer(self._settings.pointsLayerName, self._settings.pointsLayerPath, self._settings.pointsLayerProvider, self._settings.pointsStylePath, self._collectionGroupIndex)
+            self._collectionGroupIndex = layers.createLayerGroup(self._iface, self.settings.collectionGroupName, self.settings.parentGroupName)
+        self.polygonsLayer, self.polygonsLayerId = self._loadLayer(self.settings.polygonsLayerName, self.settings.polygonsLayerPath, self.settings.polygonsLayerProvider, self.settings.polygonsStylePath, self._collectionGroupIndex)
+        self.linesLayer, self.linesLayerId = self._loadLayer(self.settings.linesLayerName, self.settings.linesLayerPath, self.settings.linesLayerProvider, self.settings.linesStylePath, self._collectionGroupIndex)
+        self.pointsLayer, self.pointsLayerId = self._loadLayer(self.settings.pointsLayerName, self.settings.pointsLayerPath, self.settings.pointsLayerProvider, self.settings.pointsStylePath, self._collectionGroupIndex)
         # TODO actually check if is OK
         return True
 
@@ -190,20 +244,20 @@ class LayerCollection:
 
         self._removeOldBuffers()
 
-        collectionGroupIndex = layers.childGroupIndex(self._settings.parentGroupName, self._settings.collectionGroupName)
-        grp = layers.insertChildGroup(self._settings.parentGroupName, self._settings.buffersGroupName, collectionGroupIndex)
-        self._buffersGroupIndex = layers.getGroupIndex(self._iface, self._settings.buffersGroupName)
+        collectionGroupIndex = layers.childGroupIndex(self.settings.parentGroupName, self.settings.collectionGroupName)
+        grp = layers.insertChildGroup(self.settings.parentGroupName, self.settings.buffersGroupName, collectionGroupIndex)
+        self._buffersGroupIndex = layers.getGroupIndex(self._iface, self.settings.buffersGroupName)
 
-        self.polygonsBuffer, self.polygonsBufferId = self._createBufferLayer(self.polygonsLayer, self._settings.polygonsStylePath)
-        self.linesBuffer, self.linesBufferId = self._createBufferLayer(self.linesLayer, self._settings.linesStylePath)
-        self.pointsBuffer, self.pointsBufferId = self._createBufferLayer(self.pointsLayer, self._settings.pointsStylePath)
+        self.polygonsBuffer, self.polygonsBufferId = self._createBufferLayer(self.polygonsLayer, self.settings.polygonsStylePath)
+        self.linesBuffer, self.linesBufferId = self._createBufferLayer(self.linesLayer, self.settings.linesStylePath)
+        self.pointsBuffer, self.pointsBufferId = self._createBufferLayer(self.pointsLayer, self.settings.pointsStylePath)
 
         for child in grp.children():
             child.setExpanded(False)
 
     def _createBufferLayer(self, layer, stylePath):
         if (layer is not None and layer.isValid()):
-            memLayer = layers.cloneAsMemoryLayer(layer, layer.name() + self._settings.bufferSuffix, stylePath)
+            memLayer = layers.cloneAsMemoryLayer(layer, layer.name() + self.settings.bufferSuffix, stylePath)
             if (memLayer is not None and memLayer.isValid()):
                 memLayer = layers.addLayerToLegend(self._iface, memLayer, self._buffersGroupIndex)
                 memLayer.startEditing()

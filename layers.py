@@ -24,7 +24,7 @@
  ***************************************************************************/
 """
 
-from PyQt4.QtCore import pyqtSignal, QFileInfo
+from PyQt4.QtCore import pyqtSignal, QFileInfo, QFile
 from PyQt4.QtGui import QDialog, QComboBox, QDialogButtonBox
 from PyQt4.QtXml import QDomImplementation, QDomDocument
 
@@ -106,6 +106,29 @@ class ArkSelectLayerDialog(QDialog):
 
 
 # Layer management utilities
+
+# Try find a style file to match a layer
+def styleFilePath(layerPath, layerName, customStylePath, customStyleName, defaultStylePath, defaultStyleName):
+    # First see if the layer itself has a default style saved
+    if layerPath and layerName:
+        filePath = layerPath + '/' + layerName + '.qml'
+        if QFile.exists(filePath):
+            return filePath
+    # Next see if the default name has a style in the style folder
+    if customStylePath and customStyleName:
+        filePath = customStylePath + '/' + customStyleName + '.qml'
+        if QFile.exists(filePath):
+            return filePath
+    # Finally, check the plugin folder for the default style
+    if defaultStylePath and defaultStyleName:
+        filePath = defaultStylePath + '/' + defaultStyleName + '.qml'
+        if QFile.exists(filePath):
+            return filePath
+    # If we didn't anythign then don't use a style
+    return ''
+
+def shapeFilePath(layerPath, layerName):
+    return layerPath + '/' + layerName + '.shp'
 
 def createShapefile(filePath, wkbType, crs, fields):
     # WARNING This will overwrite existing files
