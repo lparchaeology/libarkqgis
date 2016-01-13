@@ -28,7 +28,7 @@ from PyQt4.QtCore import pyqtSignal, QFileInfo, QFile
 from PyQt4.QtGui import QDialog, QComboBox, QDialogButtonBox
 from PyQt4.QtXml import QDomImplementation, QDomDocument
 
-from qgis.core import QGis, QgsMapLayer, QgsMapLayerRegistry, QgsVectorLayer, QgsVectorFileWriter, QgsProject, QgsLayerTreeGroup
+from qgis.core import QGis, QgsMapLayer, QgsMapLayerRegistry, QgsVectorLayer, QgsVectorFileWriter, QgsProject, QgsLayerTreeGroup, NULL
 
 # Layer Widgets
 
@@ -499,7 +499,12 @@ def applySelectionRequest(layer, request):
     layer.setSelectedFeatures([f.id() for f in fit])
 
 def uniqueValues(layer, fieldName):
-    return layer.uniqueValues(layer.fieldNameIndex(fieldName))
+    values = layer.uniqueValues(layer.fieldNameIndex(fieldName))
+    res = set()
+    for val in values:
+        if val != NULL:
+            res.add(val)
+    return res
 
 def updateAttribute(layer, attribute, value, expression=None):
     idx = layer.fieldNameIndex(attribute)
