@@ -103,9 +103,9 @@ def dissolveFeatures(features, fields=None, attributes=None):
     return outFeat
 
 # Returns a point on the given line that is perpendicular to the given point
-def perpendicularPoint(lineGeometry, pointGeometry):
+def perpendicularPoint(lineGeometry, point):
     # In 2.14 use QgsGeometry.nearestPoint()
-    if lineGeometry is None or pointGeometry is None:
+    if lineGeometry is None or point is None:
         return
     lineList = []
     if lineGeometry.isMultipart():
@@ -113,6 +113,5 @@ def perpendicularPoint(lineGeometry, pointGeometry):
     else:
         lineList.append(lineGeometry.asPolyline())
     line = MultiLineString(lineList)
-    point = Point(pointGeometry.asPoint())
-    perp = line.interpolate(line.project(point))
-    return QgsGeometry.fromWkt(perp.wkt)
+    perp = line.interpolate(line.project(Point(point)))
+    return QgsPoint(perp.x, perp.y)
