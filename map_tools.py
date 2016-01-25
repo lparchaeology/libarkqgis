@@ -700,22 +700,22 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
             return
         if (self._featureType == FeatureType.Point):
             if (e.button() == Qt.LeftButton):
-                self._addFeature()
+                self.addFeature()
                 e.accept()
         else:
             if (e.button() == Qt.LeftButton):
                 if (self._featureType == FeatureType.Segment and len(self._mapPointList) == 2):
-                    self._addFeature()
+                    self.addFeature()
             elif (e.button() == Qt.RightButton):
-                self._addFeature()
+                self.addFeature()
                 e.accept()
 
-    def _addFeature(self):
+    def addFeature(self):
         if self._queryForAttribute():
-            self.addFeature(self._featureType, self._mapPointList, self._defaultAttributes, self._layer)
+            self.addAnyFeature(self._featureType, self._mapPointList, self._defaultAttributes, self._layer)
         self.resetCapturing()
 
-    def addFeature(self, featureType, mapPointList, attributes, layer):
+    def addAnyFeature(self, featureType, mapPointList, attributes, layer):
         #points: bail out if there is not exactly one vertex
         if (featureType == FeatureType.Point and len(mapPointList) != 1):
             return False
@@ -890,7 +890,7 @@ class ArkMapToolAddBaseline(ArkMapToolAddFeature):
             self._capturePointData()
         elif (e.button() == Qt.RightButton):
             for mapPoint in mapPointList:
-                self.addFeature(FeatureType.Point, [mapPoint], self._pointLayer)
+                self.addAnyFeature(FeatureType.Point, [mapPoint], self._pointLayer)
 
     def _capturePointData(self):
         if self._pointQueryField:
@@ -907,7 +907,7 @@ class ArkMapToolAddBaseline(ArkMapToolAddFeature):
             if self._pointQueryField:
                 idx = self._pointLayer.pendingFields().fieldNameIndex(self._pointQueryField.name())
                 self._pointAttributes[idx] = self._pointQueryValues[i]
-            self.addFeature(FeatureType.Point, [mapPointList[i]], self._pointLayer)
+            self.addAnyFeature(FeatureType.Point, [mapPointList[i]], self._pointLayer)
 
 
 # TODO Clean up this and fix dialog problems
