@@ -8,10 +8,11 @@
                               -------------------
         begin                : 2014-12-07
         git sha              : $Format:%H$
-        copyright            : 2014, 2015 by L-P : Heritage LLP
+        copyright            : 2014, 2015, 2016 by L-P : Heritage LLP
         email                : ark@lparchaeology.com
-        copyright            : 2014, 2015 by John Layt
+        copyright            : 2014, 2015, 2016 by John Layt
         email                : john@layt.net
+        copyright            : 2014 by Olivier Dalang
         copyright            : 2013 by Piotr Pociask
         copyright            : 2013 by Victor Olaya
  ***************************************************************************/
@@ -25,23 +26,52 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.core import QgsFeature, QgsGeometry
+import math
+
+from qgis.core import QgsFeature, QgsGeometry, QgsPoint
 
 from shapely.ops import polygonize, unary_union
-from shapely.geometry import MultiLineString
+from shapely.geometry import MultiLineString, Point
+
+# Based on LinearTransformer code from VectorBender plugin
+# (C) 2014 by Olivier Dalang
+class LinearTransformer():
+
+    def __init__(self, a1, b1, a2, b2):
+        #scale
+        self.ds = math.sqrt((b2.x() - b1.x()) ** 2.0 + (b2.y() - b1.y()) ** 2.0) / math.sqrt((a2.x() - a1.x()) ** 2.0 + (a2.y() - a1.y()) ** 2.0)
+        #rotation
+        self.da =  math.atan2(b2.y() - b1.y(), b2.x() - b1.x()) - math.atan2(a2.y() - a1.y(), a2.x() - a1.x() )
+        #translation
+        self.dx1 = a1.x()
+        self.dy1 = a1.y()
+        self.dx2 = b1.x()
+        self.dy2 = b1.y()
+
+    def map(self, p):
+        #move to origin (translation part 1)
+        p = QgsPoint( p.x()-self.dx1, p.y()-self.dy1 )
+        #scale
+        p = QgsPoint( self.ds*p.x(), self.ds*p.y() )
+        #rotation
+        p = QgsPoint(math.cos(self.da) * p.x() - math.sin(self.da) * p.y(), math.sin(self.da) * p.x() + math.cos(self.da) * p.y())
+        #remove to right spot (translation part 2)
+        p = QgsPoint(p.x() + self.dx2, p.y() + self.dy2)
+
+        return p
 
 # Adapted from QGIS Processing plugin Polygonize by Piotr Pociask
 def polygonizeFeatures(features, fields=None):
-    allLinesList = []
+    lineList = []
     for inFeat in features:
         inGeom = inFeat.geometry()
         if inGeom is None:
             pass
         elif inGeom.isMultipart():
-            allLinesList.extend(inGeom.asMultiPolyline())
+            lineList.extend(inGeom.asMultiPolyline())
         else:
-            allLinesList.append(inGeom.asPolyline())
-    allLines = MultiLineString(allLinesList)
+            lineList.append(inGeom.asPolyline())
+    allLines = MultiLineString(lineList)
     allLines = unary_union(allLines)
     polygons = list(polygonize([allLines]))
     outList = []
@@ -71,3 +101,18 @@ def dissolveFeatures(features, fields=None, attributes=None):
     if attributes is not None:
         outFeat.setAttributes(attributes)
     return outFeat
+
+# Returns a point on the given line that is perpendicular to the given point
+def perpendicularPoint(lineGeometry, pointGeometry):
+    # In 2.14 use QgsGeometry.nearestPoint()
+    if lineGeometry is None or pointGeometry is None:
+        return
+    lineList = []
+    if lineGeometry.isMultipart():
+        lineList.extend(lineGeometry.asMultiPolyline())
+    else:
+        lineList.append(lineGeometry.asPolyline())
+    line = MultiLineString(lineList)
+    point = Point(pointGeometry.asPoint())
+    perp = line.interpolate(line.project(point))
+    return QgsGeometry.fromWkt(perp.wkt)
