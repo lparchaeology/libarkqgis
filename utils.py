@@ -26,7 +26,7 @@
 
 from PyQt4.QtCore import Qt, QDateTime
 
-from qgis.core import QGis, QgsProject
+from qgis.core import QGis, QgsProject, QRegExp
 from qgis.gui import QgsMessageBar
 
 # Datetime utilities
@@ -47,6 +47,49 @@ def eqClause(field, value):
 
 def neClause(field, value):
     return doublequote(field) + ' != ' + quote(value)
+
+# List/Range conversion utilities
+
+def rangeToList(self, valueRange):
+    lst = []
+    for clause in valueRange.split():
+        if clause.find('-') >= 0:
+            valueList = clause.split('-')
+            for i in range(int(valueList[0]), int(valueList[1])):
+                lst.append(i)
+        else:
+            lst.append(int(clause))
+    return sorted(lst)
+
+def listToRange(self, valueList):
+    inList = sorted(set(valueList))
+    valueRange = ''
+    if len(inList) == 0:
+        return valueRange
+    prev = inList[0]
+    start = prev
+    for this in inList[1:]:
+        if int(this) != int(prev) + 1:
+            if prev == start:
+                valueRange = valueRange + ' ' + str(prev)
+            else:
+                valueRange = valueRange + ' ' + str(start) + '-' + str(this)
+            start = this
+        prev = this
+    if prev == start:
+        valueRange = valueRange + ' ' + str(prev)
+    else:
+        valueRange = valueRange + ' ' + str(start) + '-' + str(this)
+    return valueRange
+
+def listToRegExp(self, lst):
+    if (len(lst) < 1):
+        return QRegExp()
+    exp = str(lst[0])
+    if (len(lst) > 1):
+        for element in lst[1:]:
+            exp = exp + '|' + str(element)
+    return QRegExp('\\b(' + exp + ')\\b')
 
 # Message utilities
 
