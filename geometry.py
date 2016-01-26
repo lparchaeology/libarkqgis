@@ -105,8 +105,9 @@ def dissolveFeatures(features, fields=None, attributes=None):
 # Returns a point on the given line that is perpendicular to the given point
 def perpendicularPoint(lineGeometry, point):
     # In 2.14 use QgsGeometry.nearestPoint()
-    if lineGeometry is None or point is None:
-        return
+    # In 2.10 use QgsGeometry.isEmpty()
+    if lineGeometry is None or lineGeometry.isGeosEmpty() or point is None:
+        return QgsPoint()
     lineList = []
     if lineGeometry.isMultipart():
         lineList.extend(lineGeometry.asMultiPolyline())
