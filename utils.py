@@ -24,9 +24,9 @@
  ***************************************************************************/
 """
 
-from PyQt4.QtCore import Qt, QDateTime
+from PyQt4.QtCore import Qt, QDateTime, QRegExp
 
-from qgis.core import QGis, QgsProject, QRegExp
+from qgis.core import QGis, QgsProject
 from qgis.gui import QgsMessageBar
 
 # Datetime utilities
