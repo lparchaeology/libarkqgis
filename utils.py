@@ -26,7 +26,7 @@
 
 from PyQt4.QtCore import Qt, QDateTime, QRegExp
 
-from qgis.core import QGis, QgsProject, NULL, QgsMessageLog, QgsGeometry, QgsPoint
+from qgis.core import QGis, QgsProject, NULL, QgsMessageLog, QgsGeometry, QgsPoint, QgsFeatureRequest
 from qgis.gui import QgsMessageBar
 
 # Datetime utilities
@@ -45,6 +45,8 @@ def printable(val):
         return 'QgsPoint(' + val.toString(3) + ')'
     if type(val) == QgsGeometry:
         return 'QgsGeometry(' + val.exportToGeoJSON() + ')'
+    if type(val) == QgsFeatureRequest:
+        return 'QgsFeatureRequest(' + val.filterExpression().dump() + ')'
     return str(val).strip()
 
 def string(val):
