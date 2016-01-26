@@ -26,7 +26,7 @@
 
 from PyQt4.QtCore import Qt, QDateTime, QRegExp
 
-from qgis.core import QGis, QgsProject
+from qgis.core import QGis, QgsProject, NULL, QgsMessageLog, QgsGeometry, QgsPoint
 from qgis.gui import QgsMessageBar
 
 # Datetime utilities
@@ -35,6 +35,22 @@ def timestamp():
     return QDateTime.currentDateTimeUtc().toString(Qt.ISODate)
 
 # String utilities
+
+def printable(val):
+    if val is None or val == NULL:
+        return str(val)
+    if val == '':
+        return '<EMPTY>'
+    if type(val) == QgsPoint:
+        return 'QgsPoint(' + val.toString(3) + ')'
+    if type(val) == QgsGeometry:
+        return 'QgsGeometry(' + val.exportToGeoJSON() + ')'
+    return str(val).strip()
+
+def string(val):
+    if val is None or val == NULL:
+        return ''
+    return str(val).strip()
 
 def quote(val):
     return "'" + str(val) + "'"
@@ -50,7 +66,7 @@ def neClause(field, value):
 
 # List/Range conversion utilities
 
-def rangeToList(self, valueRange):
+def rangeToList(valueRange):
     lst = []
     for clause in valueRange.split():
         if clause.find('-') >= 0:
@@ -61,7 +77,7 @@ def rangeToList(self, valueRange):
             lst.append(int(clause))
     return sorted(lst)
 
-def listToRange(self, valueList):
+def listToRange(valueList):
     inList = sorted(set(valueList))
     valueRange = ''
     if len(inList) == 0:
@@ -82,7 +98,7 @@ def listToRange(self, valueList):
         valueRange = valueRange + ' ' + str(start) + '-' + str(this)
     return valueRange
 
-def listToRegExp(self, lst):
+def listToRegExp(lst):
     if (len(lst) < 1):
         return QRegExp()
     exp = str(lst[0])
@@ -93,11 +109,26 @@ def listToRegExp(self, lst):
 
 # Message utilities
 
-def showMessage(iface, text, level=QgsMessageBar.INFO, duration=0):
-    iface.messageBar().pushMessage(text, level, duration)
+def logCritical(text, group='Debug'):
+    logMessage(text, QgsMessageLog.CRITICAL)
 
-def showCriticalMessage(iface, text, duration=0):
-    iface.messageBar().pushMessage(text, QgsMessageBar.CRITICAL, duration)
+def logWarning(text, group='Debug'):
+    logMessage(text, QgsMessageLog.WARNING)
+
+def logMessage(text, group='Debug', level=QgsMessageLog.INFO):
+    QgsMessageLog.logMessage(text, group, level)
+
+def showCritical(text, duration=5):
+    showMessageBar(text, QgsMessageBar.CRITICAL, duration)
+
+def showWarninge(text, duration=5):
+    showMessageBar(text, QgsMessageBar.WARNING, duration)
+
+def showMessage(text, level=QgsMessageBar.INFO, duration=5):
+    showMessageBar(text, QgsMessageBar.INFO, duration)
+
+def showMessageBar(text, level=QgsMessageBar.INFO, duration=5):
+    iface.messageBar().pushMessage(text, level, duration)
 
 def showStatusMessage(iface, text):
     iface.mainWindow().statusBar().showMessage(text)
