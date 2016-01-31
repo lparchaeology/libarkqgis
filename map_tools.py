@@ -31,7 +31,7 @@ from PyQt4.QtGui import QInputDialog, QColor, QAction, QPixmap, QCursor, QBitmap
 
 from qgis.core import *
 from qgis.gui import QgsMapTool, QgsRubberBand, QgsMapCanvasSnapper, QgsVertexMarker, QgsMessageBar, QgisInterface, QgsAttributeEditorContext, QgsAttributeDialog, QgsMapToolIdentify
-
+import utils
 from snapping import Snapping
 
 # Code ported from QGIS app and adapted to take default attribute values
@@ -630,7 +630,7 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
 
     _layer = None  # QgsVectorLayer()
     _featureType = 0  # NoFeature
-    _defaultAttributes = {}  # QMap<int, QList<QVariant> >
+    _defaultAttributes = {}  # key = fieldName, value = fieldValue
 
     #TODO Eventually merge this with the input action?
     _queryAttributeName = None
@@ -819,8 +819,7 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
         if self._queryAttributeName:
             value, ok = self._getValue(self._queryTitle, self._queryLabel, self._queryType, self._queryAttributeDefault, self._queryMin, self._queryMax, self._queryDecimals)
             if ok:
-                idx = self._layer.pendingFields().fieldNameIndex(self._queryAttributeName)
-                self._defaultAttributes[idx] = value
+                self._defaultAttributes[self._queryAttributeName] = value
         return ok
 
     def _getValue(self, title, label, valueType=QVariant.String, defaultValue='', minValue=0, maxValue=0, decimals=0):
@@ -948,9 +947,10 @@ class ArkFeatureAction(QAction):
         self._feature.initAttributes(fields.count())
         for idx in range(0, fields.count()):
             v = None
+            field = fields[idx]
 
-            if (defaultAttributes.has_key(idx)):
-                v = defaultAttributes[idx]
+            if (defaultAttributes.has_key(field.name())):
+                v = defaultAttributes[field.name()]
             elif (reuseLastValues and self._lastUsedValues.has_key(self._layer.id()) and self._lastUsedValues[self._layer.id()].has_key(idx)):
                 v = self._lastUsedValues[self._layer.id()][idx]
             else:
