@@ -116,3 +116,27 @@ def perpendicularPoint(lineGeometry, point):
     line = MultiLineString(lineList)
     perp = line.interpolate(line.project(Point(point)))
     return QgsPoint(perp.x, perp.y)
+
+# Returns a line cliipped to the extent of two given points
+# Assumes pt1, pt2 lie on line
+def clipLine(line, pt1, pt2):
+    d1 = line.distance(pt1)
+    d2 = line.distance(pt2)
+    if d1 < d2:
+        start = pt1
+        ds = d1
+        end = pt2
+        de = d2
+    else:
+        start = pt2
+        ds = d2
+        end = pt1
+        de = d1
+    clip = []
+    clip.append(start)
+    for pt in line.asPolyline():
+        dp = clip.distance(pt)
+        if dp > ds and dp < de:
+            clip.append(pt)
+    clip.append(end)
+    QgsGeometry.fromPolyline(clip)
