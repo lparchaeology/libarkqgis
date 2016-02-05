@@ -28,10 +28,10 @@
 """
 import math
 
-from qgis.core import QgsFeature, QgsGeometry, QgsPoint
+from qgis.core import QGis, QgsFeature, QgsGeometry, QgsPoint
 
 from shapely.ops import polygonize, unary_union
-from shapely.geometry import MultiLineString, Point
+from shapely.geometry import LineString, MultiLineString, Point
 
 # Based on LinearTransformer code from VectorBender plugin
 # (C) 2014 by Olivier Dalang
@@ -108,20 +108,18 @@ def perpendicularPoint(lineGeometry, point):
     # In 2.10 use QgsGeometry.isEmpty()
     if lineGeometry is None or lineGeometry.isGeosEmpty() or point is None:
         return QgsPoint()
-    lineList = []
-    if lineGeometry.isMultipart():
-        lineList.extend(lineGeometry.asMultiPolyline())
-    else:
-        lineList.append(lineGeometry.asPolyline())
-    line = MultiLineString(lineList)
+    line = toMultiLineString(lineGeometry)
     perp = line.interpolate(line.project(Point(point)))
     return QgsPoint(perp.x, perp.y)
 
 # Returns a line cliipped to the extent of two given points
 # Assumes pt1, pt2 lie on line
-def clipLine(line, pt1, pt2):
-    d1 = line.distance(pt1)
-    d2 = line.distance(pt2)
+def clipLine(lineGeometry, pt1, pt2):
+    if lineGeometry is None or lineGeometry.isGeosEmpty() or pt1 is None or pt2 is None:
+        return QgsGeometry()
+    line = LineString(lineGeometry.asPolyline())
+    d1 = line.project(Point(pt1))
+    d2 = line.project(Point(pt2))
     if d1 < d2:
         start = pt1
         ds = d1
@@ -134,9 +132,20 @@ def clipLine(line, pt1, pt2):
         de = d1
     clip = []
     clip.append(start)
-    for pt in line.asPolyline():
-        dp = clip.distance(pt)
+    for coord in line.coords:
+        pt = Point(coord)
+        dp = line.project(pt)
         if dp > ds and dp < de:
-            clip.append(pt)
+            clip.append(QgsPoint(pt.x, pt.y))
     clip.append(end)
-    QgsGeometry.fromPolyline(clip)
+    geom = QgsGeometry()
+    geom.addPart(clip, QGis.Line)
+    return geom
+
+def toMultiLineString(lineGeometry):
+    lineList = []
+    if lineGeometry.isMultipart():
+        lineList.extend(lineGeometry.asMultiPolyline())
+    else:
+        lineList.append(lineGeometry.asPolyline())
+    return MultiLineString(lineList)
