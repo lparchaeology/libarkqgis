@@ -138,9 +138,7 @@ def clipLine(lineGeometry, pt1, pt2):
         if dp > ds and dp < de:
             clip.append(QgsPoint(pt.x, pt.y))
     clip.append(end)
-    geom = QgsGeometry()
-    geom.addPart(clip, QGis.Line)
-    return geom
+    return QgsGeometry.fromPolyline(clip)
 
 def toMultiLineString(lineGeometry):
     lineList = []
