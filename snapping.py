@@ -374,6 +374,11 @@ class ProjectSnappingEnabledAction(QAction):
     def setInterface(self, iface):
         self._toleranceAction.setInterface(iface)
 
+    def unload(self):
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsProject.instance().readProject.disconnect(self._refresh)
+        self.snappingEnabledChanged.disconnect(QgsProject.instance().snapSettingsChanged)
+
     # Private API
 
     def _triggered(self, checked):
@@ -450,6 +455,12 @@ class SnappingModeAction(QAction):
         QgsProject.instance().readProject.connect(self._refresh)
         # If we change the settings, make such others are told
         self.snappingModeChanged.connect(QgsProject.instance().snapSettingsChanged)
+
+    def unload(self):
+        self.triggered.disconnect(self._triggered)
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsProject.instance().readProject.disconnect(self._refresh)
+        self.snappingModeChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
     # Private API
 
@@ -529,6 +540,11 @@ class ProjectSnappingTypeAction(SnappingTypeAction):
         # If we change the settings, make such others are told
         self.snappingTypeChanged.connect(QgsProject.instance().snapSettingsChanged)
 
+    def unload(self):
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsProject.instance().readProject.disconnect(self._refresh)
+        self.snappingTypeChanged.disconnect(QgsProject.instance().snapSettingsChanged)
+
     # Private API
 
     def _triggered(self, checked):
@@ -569,6 +585,11 @@ class LayerSnappingTypeAction(SnappingTypeAction):
         QgsMapLayerRegistry.instance().layerRemoved.connect(self._layerRemoved)
         # If we change the settings, make sure others are told
         self.snappingTypeChanged.connect(QgsProject.instance().snapSettingsChanged)
+
+    def unload(self):
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsMapLayerRegistry.instance().layerRemoved.disconnect(self._layerRemoved)
+        self.snappingTypeChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
     # Private API
 
@@ -656,6 +677,11 @@ class ProjectSnappingUnitAction(SnappingUnitAction):
         # If we change the settings, make such others are told
         self.snappingUnitChanged.connect(QgsProject.instance().snapSettingsChanged)
 
+    def unload(self):
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsProject.instance().readProject.disconnect(self._refresh)
+        self.snappingUnitChanged.disconnect(QgsProject.instance().snapSettingsChanged)
+
     # Private API
 
     def _triggered(self, checked):
@@ -696,6 +722,11 @@ class LayerSnappingUnitAction(SnappingUnitAction):
         QgsMapLayerRegistry.instance().layerRemoved.connect(self._layerRemoved)
         # If we change the settings, make such others are told
         self.snappingUnitChanged.connect(QgsProject.instance().snapSettingsChanged)
+
+    def unload(self):
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsMapLayerRegistry.instance().layerRemoved.disconnect(self._layerRemoved)
+        self.snappingUnitChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
     # Private API
 
@@ -781,6 +812,11 @@ class ProjectSnappingToleranceAction(SnappingToleranceAction):
         # If we change the settings, make such others are told
         self.snappingToleranceChanged.connect(QgsProject.instance().snapSettingsChanged)
 
+    def unload(self):
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsProject.instance().readProject.disconnect(self._refresh)
+        self.snappingToleranceChanged.disconnect(QgsProject.instance().snapSettingsChanged)
+
     def setInterface(self, iface):
         self._iface = iface
         self._refresh()
@@ -846,6 +882,11 @@ class LayerSnappingToleranceAction(SnappingToleranceAction):
         # If we change the settings, make such others are told
         self.snappingToleranceChanged.connect(QgsProject.instance().snapSettingsChanged)
 
+    def unload(self):
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsMapLayerRegistry.instance().layerRemoved.disconnect(self._layerRemoved)
+        self.snappingToleranceChanged.disconnect(QgsProject.instance().snapSettingsChanged)
+
     def setInterface(self, iface):
         self._iface = iface
         self._refresh()
@@ -893,7 +934,7 @@ class LayerSnappingEnabledAction(QAction):
     """QAction for Layer Snapping Enabled
     """
 
-    layerId = ''
+    _layerId = ''
 
     snappingEnabledChanged = pyqtSignal(str, bool)
 
@@ -907,6 +948,8 @@ class LayerSnappingEnabledAction(QAction):
 
         super(LayerSnappingEnabledAction, self).__init__(parent)
         self._layerId = layerId
+        if not layerId:
+            return
 
         self.setCheckable(True)
         self.setText('Toggle Layer Snapping')
@@ -923,10 +966,13 @@ class LayerSnappingEnabledAction(QAction):
         # If we change the settings, make such others are told
         self.snappingEnabledChanged.connect(QgsProject.instance().snapSettingsChanged)
 
+    def unload(self):
+        self._layerRemoved(self._layerId)
+
     # Private API
 
     def _layerRemoved(self, layerId):
-        if layerId == self._layerId:
+        if self._layerId and layerId == self._layerId:
             self._layerId = ''
             self.setEnabled(False)
             QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
@@ -978,6 +1024,11 @@ class LayerSnappingAvoidIntersectionsAction(QAction):
         QgsMapLayerRegistry.instance().layerRemoved.connect(self._layerRemoved)
         # If we change the settings, make such others are told
         self.avoidIntersectionsChanged.connect(QgsProject.instance().snapSettingsChanged)
+
+    def unload(self):
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsMapLayerRegistry.instance().layerRemoved.disconnect(self._layerRemoved)
+        self.avoidIntersectionsChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
     # Private API
 
@@ -1032,6 +1083,11 @@ class TopologicalEditingAction(QAction):
         # If we change the settings, make such others are told
         self.topologicalEditingChanged.connect(QgsProject.instance().snapSettingsChanged)
 
+    def unload(self):
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsProject.instance().readProject.disconnect(self._refresh)
+        self.topologicalEditingChanged.disconnect(QgsProject.instance().snapSettingsChanged)
+
     # Private API
 
     def _triggered(self, status):
@@ -1073,6 +1129,11 @@ class IntersectionSnappingAction(QAction):
         QgsProject.instance().readProject.connect(self._refresh)
         # If we change the settings, make such others are told
         self.intersectionSnappingChanged.connect(QgsProject.instance().snapSettingsChanged)
+
+    def unload(self):
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        QgsProject.instance().readProject.disconnect(self._refresh)
+        self.intersectionSnappingChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
     # Private API
 
@@ -1177,6 +1238,20 @@ class ProjectSnappingAction(ProjectSnappingEnabledAction):
     def setInterface(self, iface):
         self._toleranceAction.setInterface(iface)
 
+    def unload(self):
+        super(ProjectSnappingAction, self).unload()
+        self._currentAction.unload()
+        self._allAction.unload()
+        self._selectedAction.unload()
+        self._vertexAction.unload()
+        self._segmentAction.unload()
+        self._vertexSegmentAction.unload()
+        self._pixelUnitsAction.unload()
+        self._layerUnitsAction.unload()
+        self._projectUnitsAction.unload()
+        self._toleranceAction.unload()
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refreshIcon)
+
     # Private API
 
     def _refreshIcon(self):
@@ -1198,7 +1273,6 @@ class LayerSnappingAction(LayerSnappingEnabledAction):
 
     snapSettingsChanged = pyqtSignal(str)
 
-    _layerId = ''
     _toleranceAction = None # LayerSnappingToleranceAction()
 
     def __init__(self, layer, parent=None):
@@ -1267,6 +1341,29 @@ class LayerSnappingAction(LayerSnappingEnabledAction):
 
     def setInterface(self, iface):
         self._toleranceAction.setInterface(iface)
+
+    def unload(self):
+        if not self._layerId:
+            return
+        super(LayerSnappingAction, self).unload()
+        QgsProject.instance().snapSettingsChanged.disconnect(self._refreshIcon)
+        self.snappingEnabledChanged.disconnect(self.snapSettingsChanged)
+        self._vertexAction.snappingTypeChanged.disconnect(self.snapSettingsChanged)
+        self._segmentAction.snappingTypeChanged.disconnect(self.snapSettingsChanged)
+        self._vertexSegmentAction.snappingTypeChanged.disconnect(self.snapSettingsChanged)
+        self._toleranceAction.snappingToleranceChanged.disconnect(self.snapSettingsChanged)
+        self._pixelUnitsAction.snappingUnitChanged.disconnect(self.snapSettingsChanged)
+        self._layerUnitsAction.snappingUnitChanged.disconnect(self.snapSettingsChanged)
+        self._projectUnitsAction.snappingUnitChanged.disconnect(self.snapSettingsChanged)
+        if layer.geometryType() == QGis.Polygon:
+            self._avoidAction.avoidIntersectionsChanged.disconnect(self.snapSettingsChanged)
+        self._vertexAction.unload()
+        self._segmentAction.unload()
+        self._vertexSegmentAction.unload()
+        self._toleranceAction.unload()
+        self._pixelUnitsAction.unload()
+        self._layerUnitsAction.unload()
+        self._projectUnitsAction.unload()
 
     # Private API
 
