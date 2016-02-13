@@ -29,7 +29,7 @@ from sets import Set
 from PyQt4.QtCore import QVariant, QDir
 
 from qgis.core import QGis, QgsMapLayerRegistry, QgsVectorLayer, QgsProject, QgsSnapper, QgsTolerance, QgsMapLayer, QgsFeatureRequest, QgsRectangle, QgsLayerTreeGroup
-from qgis.gui import QgsMessageBar
+from qgis.gui import QgsMessageBar, QgsHighlight
 
 import utils, layers, snapping
 
@@ -133,9 +133,11 @@ class LayerCollection:
     _iface = None # QgsInterface()
     _collectionGroupIndex = -1
     _buffersGroupIndex = -1
+    _highlights = []  # [QgsHighlight]
 
     filter = ''
     selection = ''
+    highlight = ''
 
     def __init__(self, iface, settings):
         self._iface = iface
@@ -391,3 +393,30 @@ class LayerCollection:
         layers.updateAttribute(self.pointsBuffer, attribute, value, expression)
         layers.updateAttribute(self.linesBuffer, attribute, value, expression)
         layers.updateAttribute(self.polygonsBuffer, attribute, value, expression)
+
+    def clearHighlight(self):
+        self.highlight = ''
+        del self._highlights[:]
+
+    def applyHighlight(self, requestOrExpr, color=None, alpha=None, buff=None, minWidth=None):
+        self.clearHighlight()
+        self.addHighlight(requestOrExpr, color, alpha, buff, minWidth)
+
+    def addHighlight(self, requestOrExpr, color=None, alpha=None, buff=None, minWidth=None):
+        request = None
+        if type(requestOrExpr) == QgsFeatureRequest:
+            request = requestOrExpr
+            self.highlight = request.filterExpression()
+        else:
+            request = QgsFeatureRequest()
+            request.setFilterExpression(requestOrExpr)
+            self.highlight = requestOrExpr
+        for feature in self.polygonsLayer.getFeatures(request):
+            hl = layers.addHighlight(self._iface.mapCanvas(), feature, self.polygonsLayer, color, alpha, buff, minWidth)
+            self._highlights.append(hl)
+        for feature in self.linesLayer.getFeatures(request):
+            hl = layers.addHighlight(self._iface.mapCanvas(), feature, self.linesLayer, color, alpha, buff, minWidth)
+            self._highlights.append(hl)
+        for feature in self.pointsLayer.getFeatures(request):
+            hl = layers.addHighlight(self._iface.mapCanvas(), feature, self.pointsLayer, color, alpha, buff, minWidth)
+            self._highlights.append(hl)

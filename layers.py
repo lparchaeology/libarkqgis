@@ -24,12 +24,14 @@
  ***************************************************************************/
 """
 
-from PyQt4.QtCore import pyqtSignal, QFileInfo, QFile
-from PyQt4.QtGui import QDialog, QComboBox, QDialogButtonBox
+from PyQt4.QtCore import pyqtSignal, QFileInfo, QFile, QSettings
+from PyQt4.QtGui import QDialog, QComboBox, QDialogButtonBox, QColor
 from PyQt4.QtXml import QDomImplementation, QDomDocument
 
-from qgis.core import QGis, QgsMapLayer, QgsMapLayerRegistry, QgsVectorLayer, QgsVectorFileWriter, QgsProject, QgsLayerTreeGroup, NULL
+from qgis.core import QGis, QgsMapLayer, QgsMapLayerRegistry, QgsVectorLayer, QgsVectorFileWriter, QgsProject, QgsLayerTreeGroup, NULL, QgsFeature
+from qgis.gui import QgsHighlight
 
+import utils
 # Layer Widgets
 
 class ArkLayerComboBox(QComboBox):
@@ -535,3 +537,23 @@ def isWritable(layer):
                 and shxFile.exists() and shxFile.isWritable()
                 and dbfFile.exists() and dbfFile.isWritable())
     return True
+
+def addHighlight(canvas, featureOrGeometry, layer, color=None, alpha=None, buff=None, minWidth=None):
+    # TODO Open bug report for QgsHighlight sip not having QgsFeature constructor.
+    if type(featureOrGeometry) == QgsFeature:
+        featureOrGeometry = featureOrGeometry.geometry()
+    hl = QgsHighlight(canvas, featureOrGeometry, layer)
+    if color is None:
+        color = QColor(QSettings().value('/Map/highlight/color', QGis.DEFAULT_HIGHLIGHT_COLOR.name(), str))
+    if alpha is None:
+        alpha = QSettings().value('/Map/highlight/colorAlpha', QGis.DEFAULT_HIGHLIGHT_COLOR.alpha(), int)
+    if buff is None:
+        buff = QSettings().value('/Map/highlight/buffer', QGis.DEFAULT_HIGHLIGHT_BUFFER_MM, float)
+    if minWidth is None:
+        minWidth = QSettings().value('/Map/highlight/minWidth', QGis.DEFAULT_HIGHLIGHT_MIN_WIDTH_MM, float)
+    hl.setColor(color)
+    color.setAlpha(alpha)
+    hl.setFillColor(color)
+    hl.setBuffer(buff)
+    hl.setMinWidth(minWidth)
+    return hl
