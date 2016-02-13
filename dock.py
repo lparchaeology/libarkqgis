@@ -84,12 +84,18 @@ class ToolDockWidget(ArkDockWidget):
         self.toolbar.setObjectName(u'toolbar')
         self.toolbar.setIconSize(QSize(22, 22))
 
+        self.toolbar2 = QToolBar(self)
+        self.toolbar2.setObjectName(u'toolbar')
+        self.toolbar2.setIconSize(QSize(22, 22))
+        self.toolbar2.setVisible(False)
+
         widget.setParent(self)
         self.widget = widget
 
         self._layout = QVBoxLayout(self)
         self._layout.setObjectName(u'layout')
         self._layout.addWidget(self.toolbar)
+        self._layout.addWidget(self.toolbar2)
         self._layout.addWidget(self.widget)
 
         self._contents = QWidget(self)
