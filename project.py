@@ -24,6 +24,9 @@
  ***************************************************************************/
 """
 
+from PyQt4.QtCore import QSettings
+from PyQt4.QtGui import QColor
+
 from qgis.core import QGis, QgsProject
 
 # Project setting utilities
@@ -36,6 +39,33 @@ class Project:
             return iface.mapCanvas().mapSettings().destinationCrs()
         else:
             return iface.mapCanvas().mapRenderer().destinationCrs()
+
+    @staticmethod
+    def highlightColorName():
+        return QColor(QSettings().value('/Map/highlight/color', QGis.DEFAULT_HIGHLIGHT_COLOR.name(), str))
+
+    @staticmethod
+    def highlightColorAlpha():
+        return QSettings().value('/Map/highlight/colorAlpha', QGis.DEFAULT_HIGHLIGHT_COLOR.alpha(), int)
+
+    @classmethod
+    def highlightLineColor(cls):
+        color = QColor(cls.highlightColorName())
+        return color
+
+    @classmethod
+    def highlightFillColor(cls):
+        color = QColor(cls.highlightColorName())
+        color.setAlpha(cls.highlightColorAlpha())
+        return color
+
+    @staticmethod
+    def highlightBuffer():
+        return QSettings().value('/Map/highlight/buffer', QGis.DEFAULT_HIGHLIGHT_BUFFER_MM, float)
+
+    @staticmethod
+    def highlightMinimumWidth():
+        return QSettings().value('/Map/highlight/minWidth', QGis.DEFAULT_HIGHLIGHT_MIN_WIDTH_MM, float)
 
     @staticmethod
     def setEntry(scope, key, value, default=None):

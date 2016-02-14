@@ -398,11 +398,11 @@ class LayerCollection:
         self.highlight = ''
         del self._highlights[:]
 
-    def applyHighlight(self, requestOrExpr, color=None, alpha=None, buff=None, minWidth=None):
+    def applyHighlight(self, requestOrExpr, color=None, buff=None, minWidth=None):
         self.clearHighlight()
-        self.addHighlight(requestOrExpr, color, alpha, buff, minWidth)
+        self.addHighlight(requestOrExpr, color, buff, minWidth)
 
-    def addHighlight(self, requestOrExpr, color=None, alpha=None, buff=None, minWidth=None):
+    def addHighlight(self, requestOrExpr, color=None, buff=None, minWidth=None):
         request = None
         if type(requestOrExpr) == QgsFeatureRequest:
             request = requestOrExpr
@@ -412,11 +412,11 @@ class LayerCollection:
             request.setFilterExpression(requestOrExpr)
             self.highlight = requestOrExpr
         for feature in self.polygonsLayer.getFeatures(request):
-            hl = layers.addHighlight(self._iface.mapCanvas(), feature, self.polygonsLayer, color, alpha, buff, minWidth)
+            hl = layers.addHighlight(self._iface.mapCanvas(), feature, self.polygonsLayer, color, buff, minWidth)
             self._highlights.append(hl)
         for feature in self.linesLayer.getFeatures(request):
-            hl = layers.addHighlight(self._iface.mapCanvas(), feature, self.linesLayer, color, alpha, buff, minWidth)
+            hl = layers.addHighlight(self._iface.mapCanvas(), feature, self.linesLayer, color, buff, minWidth)
             self._highlights.append(hl)
         for feature in self.pointsLayer.getFeatures(request):
-            hl = layers.addHighlight(self._iface.mapCanvas(), feature, self.pointsLayer, color, alpha, buff, minWidth)
+            hl = layers.addHighlight(self._iface.mapCanvas(), feature, self.pointsLayer, color, buff, minWidth)
             self._highlights.append(hl)

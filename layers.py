@@ -32,6 +32,8 @@ from qgis.core import QGis, QgsMapLayer, QgsMapLayerRegistry, QgsVectorLayer, Qg
 from qgis.gui import QgsHighlight
 
 import utils
+from project import Project
+
 # Layer Widgets
 
 class ArkLayerComboBox(QComboBox):
@@ -538,22 +540,25 @@ def isWritable(layer):
                 and dbfFile.exists() and dbfFile.isWritable())
     return True
 
-def addHighlight(canvas, featureOrGeometry, layer, color=None, alpha=None, buff=None, minWidth=None):
+def addHighlight(canvas, featureOrGeometry, layer, color=None, buff=None, minWidth=None):
     # TODO Open bug report for QgsHighlight sip not having QgsFeature constructor.
     if type(featureOrGeometry) == QgsFeature:
         featureOrGeometry = featureOrGeometry.geometry()
     hl = QgsHighlight(canvas, featureOrGeometry, layer)
+    lineColor = None
+    fillColor = None
     if color is None:
-        color = QColor(QSettings().value('/Map/highlight/color', QGis.DEFAULT_HIGHLIGHT_COLOR.name(), str))
-    if alpha is None:
-        alpha = QSettings().value('/Map/highlight/colorAlpha', QGis.DEFAULT_HIGHLIGHT_COLOR.alpha(), int)
+        lineColor = Project.highlightLineColor()
+        fillColor = Project.highlightFillColor()
+    else:
+        lineColor = QColor(color.name())
+        fillColor = color
     if buff is None:
-        buff = QSettings().value('/Map/highlight/buffer', QGis.DEFAULT_HIGHLIGHT_BUFFER_MM, float)
+        buff = Project.highlightBuffer()
     if minWidth is None:
-        minWidth = QSettings().value('/Map/highlight/minWidth', QGis.DEFAULT_HIGHLIGHT_MIN_WIDTH_MM, float)
-    hl.setColor(color)
-    color.setAlpha(alpha)
-    hl.setFillColor(color)
+        minWidth = Project.highlightMinimumWidth()
+    hl.setColor(lineColor)
+    hl.setFillColor(fillColor)
     hl.setBuffer(buff)
     hl.setMinWidth(minWidth)
     return hl
