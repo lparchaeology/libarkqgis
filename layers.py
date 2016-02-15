@@ -273,10 +273,12 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
     # Copy the requested features
     wasEditing = toLayer.isEditable()
     if (wasEditing or toLayer.startEditing()) and (logLayer is None or logLayer.startEditing()):
-        toLayer.beginEditCommand(undoMessage)
+        if wasEditing:
+            toLayer.beginEditCommand(undoMessage)
         logFeature = None
         if logLayer:
-            logLayer.beginEditCommand(undoMessage)
+            if wasEditing:
+                logLayer.beginEditCommand(undoMessage)
             logFeature = QgsFeature(logLayer.fields())
             logFeature.setAttribute('event', 'insert')
             logFeature.setAttribute('timestamp', timestamp)
@@ -291,25 +293,24 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
                 ok = toLayer.addFeature(feature)
             if not ok:
                 break
-        if ok:
-            if logLayer:
-                logLayer.endEditCommand()
-            toLayer.endEditCommand()
-        else:
-            if logLayer:
-                logLayer.destroyEditCommand()
-            toLayer.destroyEditCommand()
-        if ok and logLayer:
-            ok = logLayer.commitChanges()
-            if not ok:
-                logLayer.rollback()
-                layer.rollBack()
+        # If was already in edit mode, end or destroy the editing buffer
+        if wasEditing:
+            if ok:
+                if logLayer:
+                    logLayer.endEditCommand()
+                toLayer.endEditCommand()
+            else:
+                if logLayer:
+                    logLayer.destroyEditCommand()
+                toLayer.destroyEditCommand()
+        # If was already in edit mode, is up to caller to commit the log and layer
         if not wasEditing:
+            if ok and logLayer:
+                ok = logLayer.commitChanges()
             if ok:
                 ok = toLayer.commitChanges()
             if not ok:
                 if logLayer:
-                    #TODO CAN WE ROLLBACK HERE???
                     logLayer.rollback()
                 toLayer.rollBack()
         if ft == 0:
@@ -335,10 +336,12 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', l
     # Copy the requested features
     wasEditing = layer.isEditable()
     if (wasEditing or layer.startEditing()) and (logLayer is None or logLayer.startEditing()):
-        layer.beginEditCommand(undoMessage)
+        if wasEditing:
+            layer.beginEditCommand(undoMessage)
         logFeature = None
         if logLayer:
-            logLayer.beginEditCommand(undoMessage)
+            if wasEditing:
+                logLayer.beginEditCommand(undoMessage)
             logFeature = QgsFeature(logLayer.fields())
             logFeature.setAttribute('event', 'delete')
             logFeature.setAttribute('timestamp', timestamp)
@@ -353,25 +356,24 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', l
                 ok = layer.deleteFeature(feature.id())
             if not ok:
                 break
-        if ok:
-            if logLayer:
-                logLayer.endEditCommand()
-            layer.endEditCommand()
-        else:
-            if logLayer:
-                logLayer.destroyEditCommand()
-            layer.destroyEditCommand()
-        if ok and logLayer:
-            ok = logLayer.commitChanges()
-            if not ok:
-                logLayer.rollback()
-                layer.rollBack()
+        # If was already in edit mode, end or destroy the editing buffer
+        if wasEditing:
+            if ok:
+                if logLayer:
+                    logLayer.endEditCommand()
+                layer.endEditCommand()
+            else:
+                if logLayer:
+                    logLayer.destroyEditCommand()
+                layer.destroyEditCommand()
+        # If was already in edit mode, is up to caller to commit the log and layer
         if not wasEditing:
+            if ok and logLayer:
+                ok = logLayer.commitChanges()
             if ok:
                 ok = layer.commitChanges()
             if not ok:
                 if logLayer:
-                    #TODO CAN WE ROLLBACK HERE???
                     logLayer.rollback()
                 layer.rollBack()
         if ft == 0:

@@ -106,7 +106,6 @@ class LayerCollectionSettings:
         Project.writeEntry(scope, 'parentGroupName', lcs.parentGroupName)
         Project.writeEntry(scope, 'bufferGroupName', lcs.bufferGroupName)
         Project.writeEntry(scope, 'log', lcs.log)
-        Project.writeEntry(scope, 'pointsLayerLabel', lcs.pointsLayerLabel)
         Project.writeEntry(scope, 'pointsLayerName', lcs.pointsLayerName)
         Project.writeEntry(scope, 'pointsLayerPath', lcs.pointsLayerPath)
         Project.writeEntry(scope, 'pointsStylePath', lcs.pointsStylePath)
@@ -114,7 +113,6 @@ class LayerCollectionSettings:
         Project.writeEntry(scope, 'pointsBufferPath', lcs.pointsBufferPath)
         Project.writeEntry(scope, 'pointsLogName', lcs.pointsLogName)
         Project.writeEntry(scope, 'pointsLogPath', lcs.pointsLogPath)
-        Project.writeEntry(scope, 'linesLayerLabel', lcs.linesLayerLabel)
         Project.writeEntry(scope, 'linesLayerName', lcs.linesLayerName)
         Project.writeEntry(scope, 'linesLayerPath', lcs.linesLayerPath)
         Project.writeEntry(scope, 'linesStylePath', lcs.linesStylePath)
@@ -270,6 +268,7 @@ class LayerCollection:
                 if layer and layer.isValid():
                     layer.dataProvider().addAttributes([QgsField('timestamp', QVariant.String, '', 10, 0, 'timestamp')])
                     layer.dataProvider().addAttributes([QgsField('event', QVariant.String, '', 6, 0, 'event')])
+                    layer.setFeatureFormSuppress(QgsVectorLayer.SuppressOn)
                     layers.loadStyle(layer, fromLayer=sourceLayer)
         if layer and layer.isValid():
             layerId = layer.id()
@@ -317,19 +316,27 @@ class LayerCollection:
     def isWritable(self):
         return ((self.pointsLayer is None or layers.isWritable(self.pointsLayer))
                 and (self.linesLayer is None or layers.isWritable(self.linesLayer))
-                and (self.polygonsLayer is None or layers.isWritable(self.polygonsLayer)))
+                and (self.polygonsLayer is None or layers.isWritable(self.polygonsLayer))
+                and (self.pointsBuffer is None or layers.isWritable(self.pointsBuffer))
+                and (self.linesBuffer is None or layers.isWritable(self.linesBuffer))
+                and (self.polygonsBuffer is None or layers.isWritable(self.polygonsBuffer))
+                and (self.pointsLog is None or layers.isWritable(self.pointsLog))
+                and (self.linesLog is None or layers.isWritable(self.linesLog))
+                and (self.polygonsLog is None or layers.isWritable(self.polygonsLog)))
 
-    def mergeBuffers(self, undoMessage='Merge Buffers'):
+    def mergeBuffers(self, undoMessage='Merge Buffers', timestamp=None):
+        if timestamp is None and self.settings.log:
+            timestamp = utils.timestamp()
         merge = True
-        if layers.copyAllFeatures(self.pointsBuffer, self.pointsLayer, undoMessage + ' - copy points'):
+        if layers.copyAllFeatures(self.pointsBuffer, self.pointsLayer, undoMessage + ' - copy points', self.pointsLog, timestamp):
             self._clearBuffer(self.pointsBuffer, undoMessage + ' - delete points')
         else:
             merge = False
-        if layers.copyAllFeatures(self.linesBuffer, self.linesLayer, undoMessage + ' - copy lines'):
+        if layers.copyAllFeatures(self.linesBuffer, self.linesLayer, undoMessage + ' - copy lines', self.linesLog, timestamp):
             self._clearBuffer(self.linesBuffer, undoMessage + ' - delete lines')
         else:
             merge = False
-        if layers.copyAllFeatures(self.polygonsBuffer, self.polygonsLayer, undoMessage + ' - copy polygons'):
+        if layers.copyAllFeatures(self.polygonsBuffer, self.polygonsLayer, undoMessage + ' - copy polygons', self.polygonsLog, timestamp):
             self._clearBuffer(self.polygonsBuffer, undoMessage + ' - delete polygons')
         else:
             merge = False
@@ -340,22 +347,24 @@ class LayerCollection:
         self._clearBuffer(self.linesBuffer, undoMessage + ' - lines')
         self._clearBuffer(self.polygonsBuffer, undoMessage + ' - polygons')
 
-    def _clearBuffer(self, layer, undoMessage):
-        return layers.deleteAllFeatures(layer, undoMessage) and layer.commitChanges() and layer.startEditing()
+    def _clearBuffer(self, layer, undoMessage, timestamp=None):
+        return layers.deleteAllFeatures(layer, undoMessage, timestamp) and layer.commitChanges() and layer.startEditing()
 
-    def moveFeatureRequestToBuffers(self, featureRequest):
-        if self.copyFeatureRequestToBuffers(featureRequest):
-            self.deleteFeatureRequest(featureRequest)
+    def moveFeatureRequestToBuffers(self, featureRequest, logMessage='Move Features', timestamp=None):
+        if self.copyFeatureRequestToBuffers(featureRequest, logMessage, timestamp):
+            self.deleteFeatureRequest(featureRequest, logMessage, timestamp)
 
-    def copyFeatureRequestToBuffers(self, featureRequest):
-        return (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, 'Copy point features to buffer')
-                and layers.copyFeatureRequest(featureRequest, self.linesLayer, self.linesBuffer, 'Copy line features to buffer')
-                and layers.copyFeatureRequest(featureRequest, self.polygonsLayer, self.polygonsBuffer, 'Copy polygon features to buffer'))
+    def copyFeatureRequestToBuffers(self, featureRequest, logMessage='Copy Features to Buffer', timestamp=None):
+        return (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, undoMessage + ' - points', self.pointsLog, timestamp)
+                and layers.copyFeatureRequest(featureRequest, self.linesLayer, self.linesBuffer, undoMessage + ' - lines', self.linesLog, timestamp)
+                and layers.copyFeatureRequest(featureRequest, self.polygonsLayer, self.polygonsBuffer, undoMessage + ' - polygons', self.polygonsLog, timestamp))
 
-    def deleteFeatureRequest(self, featureRequest):
-        layers.deleteFeatureRequest(featureRequest, self.pointsLayer, 'Delete point features')
-        layers.deleteFeatureRequest(featureRequest, self.linesLayer, 'Delete line features')
-        layers.deleteFeatureRequest(featureRequest, self.polygonsLayer, 'Delete polygon features')
+    def deleteFeatureRequest(self, featureRequest, logMessage = 'Delete Features', timestamp=None):
+        if timestamp is None and self.settings.log:
+            timestamp = utils.timestamp()
+        layers.deleteFeatureRequest(featureRequest, self.pointsLayer, undoMessage + ' - points', self.pointsLog, timestamp)
+        layers.deleteFeatureRequest(featureRequest, self.linesLayer, undoMessage + ' - lines', self.linesLog, timestamp)
+        layers.deleteFeatureRequest(featureRequest, self.polygonsLayer, undoMessage + ' - polygons', self.polygonsLog, timestamp)
 
     def setVisible(self, status):
         self.setPointsVisible(status)
