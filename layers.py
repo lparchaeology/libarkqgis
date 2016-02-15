@@ -134,33 +134,39 @@ def styleFilePath(layerPath, layerName, customStylePath, customStyleName, defaul
 def shapeFilePath(layerPath, layerName):
     return layerPath + '/' + layerName + '.shp'
 
-def createShapefile(filePath, wkbType, crs, fields):
+def createShapefile(filePath, name, wkbType, crs, fields, styleURI=None, symbology=None):
     # WARNING This will overwrite existing files
-    layer = QgsVectorFileWriter(filePath, 'System', fields, wkbType, crs)
-    error = layer.hasError()
-    del layer
-    return error
+    writer = QgsVectorFileWriter(filePath, 'System', fields, wkbType, crs)
+    del writer
+    layer = QgsVectorLayer(filePath, name, 'ogr')
+    loadStyle(layer, styleURI, symbology)
+    return layer
 
-def createMemoryLayer(name, wkbType, crsId, fields=None, styleURI=None, symbology=None):
-    uri = wkbToMemoryType(wkbType) + "?crs=" + crsId + "&index=yes"
-    mem = QgsVectorLayer(uri, name, 'memory')
-    if (mem is not None and mem.isValid()):
+def createMemoryLayer(name, wkbType, crs, fields=None, styleURI=None, symbology=None):
+    uri = wkbToMemoryType(wkbType) + "?crs=" + crs.authid() + "&index=yes"
+    layer = QgsVectorLayer(uri, name, 'memory')
+    if (layer and layer.isValid()):
         if fields:
-            mem.dataProvider().addAttributes(fields.toList())
+            layer.dataProvider().addAttributes(fields.toList())
         else:
-            mem.dataProvider().addAttributes([QgsField('id', QVariant.String, '', 10, 0, 'ID')])
-        if styleURI:
-            mem.loadNamedStyle(styleURI)
-        if symbology:
-            mem.readSymbology(symbology, '')
-    return mem
+            layer.dataProvider().addAttributes([QgsField('id', QVariant.String, '', 10, 0, 'ID')])
+        loadStyle(layer, styleURI, symbology)
+    return layer
+
+def cloneAsShapefile(layer, filePath, name, styleURI=None, symbology=None):
+    # WARNING This will overwrite existing files
+    if (layer is not None and layer.isValid() and layer.type() == QgsMapLayer.VectorLayer):
+        if styleURI is None and symbology is None:
+            symbology = getSymbology(layer)
+        return createShapefile(filePath, name, layer.wkbType(), layer.crs(), layer.dataProvider().fields(), styleURI, symbology)
+    return QgsVectorLayer()
 
 def cloneAsMemoryLayer(layer, name, styleURI=None, symbology=None):
     if (layer is not None and layer.isValid() and layer.type() == QgsMapLayer.VectorLayer):
         if styleURI is None and symbology is None:
             symbology = getSymbology(layer)
-        return createMemoryLayer(name, layer.wkbType(), layer.crs().authid(), layer.dataProvider().fields(), styleURI, symbology)
-    return None
+        return createMemoryLayer(name, layer.wkbType(), layer.crs(), layer.dataProvider().fields(), styleURI, symbology)
+    return QgsVectorLayer()
 
 def duplicateAsMemoryLayer(layer, memName):
     mem = cloneAsMemoryLayer(layer, memName)
@@ -170,6 +176,15 @@ def duplicateAsMemoryLayer(layer, memName):
         mem.addFeature(feature)
     mem.commitChanges()
     return mem
+
+def loadStyle(layer, styleURI=None, symbology=None, fromLayer=None):
+    if (layer is not None and layer.isValid() and layer.type() == QgsMapLayer.VectorLayer):
+        if styleURI:
+            layer.loadNamedStyle(styleURI)
+        elif symbology:
+            layer.readSymbology(symbology, '')
+        elif fromLayer and fromLayer.isValid() and fromLayer.type() == QgsMapLayer.VectorLayer:
+            copySymbology(fromLayer, layer)
 
 def getSymbology(source):
     di = QDomImplementation()
@@ -246,7 +261,7 @@ def wkbToMemoryType(wkbType):
 
 def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy features'):
     ok = False
-    if isInvalid(fromLayer) or not isWritable(toLayer):
+    if not isWritable(layer) or (logLayer and not isWritable(logLayer)):
         return ok
     # Stash the current subset
     fromSubset = fromLayer.subsetString()
@@ -257,22 +272,45 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
         toLayer.setSubsetString('')
     # Copy the requested features
     wasEditing = toLayer.isEditable()
-    if wasEditing or toLayer.startEditing():
+    if (wasEditing or toLayer.startEditing()) and (logLayer is None or logLayer.startEditing()):
         toLayer.beginEditCommand(undoMessage)
+        logFeature = None
+        if logLayer:
+            logLayer.beginEditCommand(undoMessage)
+            logFeature = QgsFeature(logLayer.fields())
+            logFeature.setAttribute('event', 'insert')
+            logFeature.setAttribute('timestamp', timestamp)
         ft = 0
         for feature in fromLayer.getFeatures(featureRequest):
             ft += 1
-            ok = toLayer.addFeature(feature, False)
+            if logLayer:
+                logFeature.setGeometry(feature.geometry())
+                logFeature.setAttributes(feature.attributes())
+                ok = logLayer.addFeature(logFeature) and toLayer.addFeature(feature)
+            else:
+                ok = toLayer.addFeature(feature)
             if not ok:
                 break
         if ok:
+            if logLayer:
+                logLayer.endEditCommand()
             toLayer.endEditCommand()
         else:
+            if logLayer:
+                logLayer.destroyEditCommand()
             toLayer.destroyEditCommand()
+        if ok and logLayer:
+            ok = logLayer.commitChanges()
+            if not ok:
+                logLayer.rollback()
+                layer.rollBack()
         if not wasEditing:
             if ok:
                 ok = toLayer.commitChanges()
-            else:
+            if not ok:
+                if logLayer:
+                    #TODO CAN WE ROLLBACK HERE???
+                    logLayer.rollback()
                 toLayer.rollBack()
         if ft == 0:
             ok = True
@@ -283,91 +321,12 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
         toLayer.setSubsetString(toSubset)
     return ok
 
-def copyFeatureIds(featureIds, fromLayer, toLayer, undoMessage='Copy features'):
-    ok = False
-    if isInvalid(fromLayer) or not isWritable(toLayer):
-        return ok
-    # Stash the current selection and subset
-    prevSelect = fromLayer.selectedFeaturesIds()
-    fromSubset = fromLayer.subsetString()
-    toSubset = toLayer.subsetString()
-    fromLayer.removeSelection()
-    if fromSubset:
-        fromLayer.setSubsetString('')
-    if toSubset:
-        toLayer.setSubsetString('')
-    # Select the requested features
-    fromLayer.select(featureIds)
-    # Copy the selected features
-    if fromLayer.selectedFeatureCount() > 0:
-        wasEditing = toLayer.isEditable()
-        if wasEditing or toLayer.startEditing():
-            toLayer.beginEditCommand(undoMessage)
-            ok = toLayer.addFeatures(fromLayer.selectedFeatures(), False)
-            if ok:
-                toLayer.endEditCommand()
-            else:
-                toLayer.destroyEditCommand()
-            if not wasEditing:
-                if ok:
-                    ok = toLayer.commitChanges()
-                else:
-                    toLayer.rollBack()
-    else:
-        ok = True
-    # Restore the previous selection and subset
-    fromLayer.removeSelection()
-    if fromSubset:
-        fromLayer.setSubsetString(fromSubset)
-    if toSubset:
-        toLayer.setSubsetString(toSubset)
-    fromLayer.select(prevSelect)
-    return ok
+def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features', logLayer=None, timestamp=''):
+    return copyFeatureRequest(QgsFeatureRequest(), fromLayer, toLayer, undoMessage, logLayer, timestamp)
 
-def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features'):
+def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', logLayer=None, timestamp=''):
     ok = False
-    if isInvalid(fromLayer) or not isWritable(toLayer):
-        return ok
-    # Stash the current selection and subset
-    prevSelect = fromLayer.selectedFeaturesIds()
-    fromSubset = fromLayer.subsetString()
-    toSubset = toLayer.subsetString()
-    fromLayer.removeSelection()
-    if fromSubset:
-        fromLayer.setSubsetString('')
-    if toSubset:
-        toLayer.setSubsetString('')
-    # Select the requested features
-    fromLayer.selectAll()
-    # Copy the selected features
-    if fromLayer.selectedFeatureCount() > 0:
-        wasEditing = toLayer.isEditable()
-        if wasEditing or toLayer.startEditing():
-            toLayer.beginEditCommand(undoMessage)
-            ok = toLayer.addFeatures(fromLayer.selectedFeatures(), False)
-            if ok:
-                toLayer.endEditCommand()
-            else:
-                toLayer.destroyEditCommand()
-            if not wasEditing:
-                if ok:
-                    ok = toLayer.commitChanges()
-                else:
-                    toLayer.rollBack()
-    else:
-        ok = True
-    # Restore the previous selection and subset
-    fromLayer.removeSelection()
-    if fromSubset:
-        fromLayer.setSubsetString(fromSubset)
-    if toSubset:
-        toLayer.setSubsetString(toSubset)
-    fromLayer.select(prevSelect)
-    return ok
-
-def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features'):
-    ok = False
-    if not isWritable(layer):
+    if not isWritable(layer) or (logLayer and not isWritable(logLayer)):
         return ok
     # Stash the current subset
     subset = layer.subsetString()
@@ -375,22 +334,45 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features'):
         layer.setSubsetString('')
     # Copy the requested features
     wasEditing = layer.isEditable()
-    if wasEditing or layer.startEditing():
+    if (wasEditing or layer.startEditing()) and (logLayer is None or logLayer.startEditing()):
         layer.beginEditCommand(undoMessage)
+        logFeature = None
+        if logLayer:
+            logLayer.beginEditCommand(undoMessage)
+            logFeature = QgsFeature(logLayer.fields())
+            logFeature.setAttribute('event', 'delete')
+            logFeature.setAttribute('timestamp', timestamp)
         ft = 0
         for feature in layer.getFeatures(featureRequest):
             ft += 1
-            ok = layer.deleteFeature(feature.id())
+            if logLayer:
+                logFeature.setGeometry(feature.geometry())
+                logFeature.setAttributes(feature.attributes())
+                ok = logLayer.addFeature(logFeature) and layer.deleteFeature(feature.id())
+            else:
+                ok = layer.deleteFeature(feature.id())
             if not ok:
                 break
         if ok:
+            if logLayer:
+                logLayer.endEditCommand()
             layer.endEditCommand()
         else:
+            if logLayer:
+                logLayer.destroyEditCommand()
             layer.destroyEditCommand()
+        if ok and logLayer:
+            ok = logLayer.commitChanges()
+            if not ok:
+                logLayer.rollback()
+                layer.rollBack()
         if not wasEditing:
             if ok:
                 ok = layer.commitChanges()
-            else:
+            if not ok:
+                if logLayer:
+                    #TODO CAN WE ROLLBACK HERE???
+                    logLayer.rollback()
                 layer.rollBack()
         if ft == 0:
             ok = True
@@ -399,64 +381,8 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features'):
         layer.setSubsetString(subset)
     return ok
 
-def deleteFeatureIds(featureIds, layer, undoMessage='Delete features'):
-    ok = False
-    if not isWritable(layer):
-        return ok
-    # Stash the current subset
-    subset = layer.subsetString()
-    if subset:
-        layer.setSubsetString('')
-    # Delete the requested features
-    wasEditing = toLayer.isEditable()
-    if wasEditing or layer.startEditing():
-        layer.beginEditCommand(undoMessage)
-        ok = layer.deleteFeatures(featureIds)
-    if ok:
-        layer.endEditCommand()
-    else:
-        layer.destroyEditCommand()
-    if not wasEditing:
-        if ok:
-            ok = layer.commitChanges()
-        else:
-            layer.rollBack()
-    # Restore the previous subset
-    if subset:
-        layer.setSubsetString(subset)
-    return ok
-
-def deleteAllFeatures(layer, undoMessage='Delete features'):
-    ok = False
-    if not isWritable(layer):
-        return ok
-    # Stash the current selection and subset
-    prevSelect = layer.selectedFeaturesIds()
-    subset = layer.subsetString()
-    if subset:
-        layer.setSubsetString('')
-    # Select the requested features
-    layer.selectAll()
-    # Delete the requested features
-    wasEditing = layer.isEditable()
-    if wasEditing or layer.startEditing():
-        layer.beginEditCommand(undoMessage)
-        ok = layer.deleteSelectedFeatures()
-    if ok:
-        layer.endEditCommand()
-    else:
-        layer.destroyEditCommand()
-    if not wasEditing:
-        if ok:
-            ok = layer.commitChanges()
-        else:
-            layer.rollBack()
-    # Restore the previous selection and subset
-    layer.removeSelection()
-    if subset:
-        layer.setSubsetString(subset)
-    layer.select(prevSelect)
-    return ok
+def deleteAllFeatures(layer, undoMessage='Delete features', logLayer=None, timestamp=''):
+    return deleteFeatureRequest(QgsFeatureRequest(), layer, undoMessage, logLayer, timestamp)
 
 def childGroupIndex(parentGroupName, childGroupName):
     root = QgsProject.instance().layerTreeRoot()
