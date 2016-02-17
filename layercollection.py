@@ -275,16 +275,17 @@ class LayerCollection:
             if not QFile.exists(layerPath):
                 # If the layer doesn't exist, clone from the source layer
                 layer = layers.cloneAsShapefile(sourceLayer, layerPath, layerName)
+                if layer and layer.isValid():
+                    layer.dataProvider().addAttributes([QgsField('timestamp', QVariant.String, '', 10, 0, 'timestamp')])
+                    layer.dataProvider().addAttributes([QgsField('event', QVariant.String, '', 6, 0, 'event')])
             else:
                 # If the layer does exist, then load it and copy the style
                 layer = QgsVectorLayer(layerPath, layerName, 'ogr')
                 if layer and layer.isValid():
-                    layer.dataProvider().addAttributes([QgsField('timestamp', QVariant.String, '', 10, 0, 'timestamp')])
-                    layer.dataProvider().addAttributes([QgsField('event', QVariant.String, '', 6, 0, 'event')])
-                    layer.setFeatureFormSuppress(QgsVectorLayer.SuppressOn)
                     layers.loadStyle(layer, fromLayer=sourceLayer)
         if layer and layer.isValid():
             layerId = layer.id()
+            layer.setFeatureFormSuppress(QgsVectorLayer.SuppressOn)
         else:
             layer = None
         return layer, layerId
