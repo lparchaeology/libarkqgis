@@ -143,6 +143,7 @@ class LayerCollectionSettings:
 
 class LayerCollection:
 
+    projectPath = ''
     settings = None  # LayerCollectionSettings()
 
     pointsLayer = None
@@ -177,8 +178,9 @@ class LayerCollection:
     selection = ''
     highlight = ''
 
-    def __init__(self, iface, settings):
+    def __init__(self, iface, projectPath, settings):
         self._iface = iface
+        self.projectPath = projectPath
         self.settings = settings
         # If the legend indexes change make sure we stay updated
         self._iface.legendInterface().groupIndexChanged.connect(self._groupIndexChanged)
@@ -230,9 +232,10 @@ class LayerCollection:
     def _loadLayer(self, layerPath, layerName, stylePath):
         layer = None
         layerId = ''
+        fullLayerPath = self.projectPath + '/' + layerPath
         if (layerName and layerPath):
             self._removeLayer(layerName)
-            layer = QgsVectorLayer(layerPath, layerName, 'ogr')
+            layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
         if layer and layer.isValid():
             layerId = layer.id()
             self._setDefaultSnapping(layer)
@@ -246,14 +249,15 @@ class LayerCollection:
     def _loadBufferLayer(self, sourceLayer, layerPath, layerName):
         layer = None
         layerId = ''
+        fullLayerPath = self.projectPath + '/' + layerPath
         if (layerName and layerPath and sourceLayer and sourceLayer.isValid()):
             self._removeLayer(layerName)
-            if not QFile.exists(layerPath):
+            if not QFile.exists(fullLayerPath):
                 # If the layer doesn't exist, clone from the source layer
-                layer = layers.cloneAsShapefile(sourceLayer, layerPath, layerName)
+                layer = layers.cloneAsShapefile(sourceLayer, fullLayerPath, layerName)
             else:
                 # If the layer does exist, then load it and copy the style
-                layer = QgsVectorLayer(layerPath, layerName, 'ogr')
+                layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
                 if layer and layer.isValid():
                     layers.loadStyle(layer, fromLayer=sourceLayer)
         if layer and layer.isValid():
@@ -269,17 +273,18 @@ class LayerCollection:
     def _loadLogLayer(self, sourceLayer, layerPath, layerName):
         layer = None
         layerId = ''
+        fullLayerPath = self.projectPath + '/' + layerPath
         if (layerName and layerPath and sourceLayer and sourceLayer.isValid()):
             self._removeLayer(layerName)
-            if not QFile.exists(layerPath):
+            if not QFile.exists(fullLayerPath):
                 # If the layer doesn't exist, clone from the source layer
-                layer = layers.cloneAsShapefile(sourceLayer, layerPath, layerName)
+                layer = layers.cloneAsShapefile(sourceLayer, fullLayerPath, layerName)
                 if layer and layer.isValid():
                     layer.dataProvider().addAttributes([QgsField('timestamp', QVariant.String, '', 10, 0, 'timestamp')])
                     layer.dataProvider().addAttributes([QgsField('event', QVariant.String, '', 6, 0, 'event')])
             else:
                 # If the layer does exist, then load it and copy the style
-                layer = QgsVectorLayer(layerPath, layerName, 'ogr')
+                layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
                 if layer and layer.isValid():
                     layers.loadStyle(layer, fromLayer=sourceLayer)
         if layer and layer.isValid():
