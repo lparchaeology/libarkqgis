@@ -1274,6 +1274,7 @@ class LayerSnappingAction(LayerSnappingEnabledAction):
     snapSettingsChanged = pyqtSignal(str)
 
     _toleranceAction = None # LayerSnappingToleranceAction()
+    _geometryType = None
 
     def __init__(self, layer, parent=None):
         """Initialises the snapping action
@@ -1317,7 +1318,8 @@ class LayerSnappingAction(LayerSnappingEnabledAction):
         menu.addSeparator()
         menu.addAction(self._toleranceAction)
         menu.addActions(self._unitTypeActionGroup.actions())
-        if layer.geometryType() == QGis.Polygon:
+        self._geometryType = layer.geometryType()
+        if self._geometryType == QGis.Polygon:
             self._avoidAction = LayerSnappingAvoidIntersectionsAction(self._layerId, self)
             menu.addSeparator()
             menu.addAction(self._avoidAction)
@@ -1336,7 +1338,7 @@ class LayerSnappingAction(LayerSnappingEnabledAction):
         self._pixelUnitsAction.snappingUnitChanged.connect(self.snapSettingsChanged)
         self._layerUnitsAction.snappingUnitChanged.connect(self.snapSettingsChanged)
         self._projectUnitsAction.snappingUnitChanged.connect(self.snapSettingsChanged)
-        if layer.geometryType() == QGis.Polygon:
+        if self._geometryType == QGis.Polygon:
             self._avoidAction.avoidIntersectionsChanged.connect(self.snapSettingsChanged)
 
     def setInterface(self, iface):
@@ -1355,7 +1357,7 @@ class LayerSnappingAction(LayerSnappingEnabledAction):
         self._pixelUnitsAction.snappingUnitChanged.disconnect(self.snapSettingsChanged)
         self._layerUnitsAction.snappingUnitChanged.disconnect(self.snapSettingsChanged)
         self._projectUnitsAction.snappingUnitChanged.disconnect(self.snapSettingsChanged)
-        if layer.geometryType() == QGis.Polygon:
+        if self._geometryType == QGis.Polygon:
             self._avoidAction.avoidIntersectionsChanged.disconnect(self.snapSettingsChanged)
         self._vertexAction.unload()
         self._segmentAction.unload()
