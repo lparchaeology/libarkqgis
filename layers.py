@@ -28,7 +28,7 @@ from PyQt4.QtCore import pyqtSignal, QFileInfo, QFile, QSettings
 from PyQt4.QtGui import QDialog, QComboBox, QDialogButtonBox, QColor
 from PyQt4.QtXml import QDomImplementation, QDomDocument
 
-from qgis.core import QGis, QgsMapLayer, QgsMapLayerRegistry, QgsVectorLayer, QgsVectorFileWriter, QgsProject, QgsLayerTreeGroup, NULL, QgsFeature
+from qgis.core import QGis, QgsMapLayer, QgsMapLayerRegistry, QgsVectorLayer, QgsVectorFileWriter, QgsProject, QgsLayerTreeGroup, NULL, QgsFeature, QgsFeatureRequest
 from qgis.gui import QgsHighlight
 
 import utils
@@ -259,9 +259,9 @@ def wkbToMemoryType(wkbType):
         return 'multipolygon'
     return 'unknown'
 
-def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy features'):
+def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy features', logLayer=None, timestamp=None):
     ok = False
-    if not isWritable(layer) or (logLayer and not isWritable(logLayer)):
+    if not isWritable(toLayer) or (logLayer and not isWritable(logLayer)):
         return ok
     # Stash the current subset
     fromSubset = fromLayer.subsetString()
@@ -322,10 +322,10 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
         toLayer.setSubsetString(toSubset)
     return ok
 
-def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features', logLayer=None, timestamp=''):
+def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features', logLayer=None, timestamp=None):
     return copyFeatureRequest(QgsFeatureRequest(), fromLayer, toLayer, undoMessage, logLayer, timestamp)
 
-def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', logLayer=None, timestamp=''):
+def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', logLayer=None, timestamp=None):
     ok = False
     if not isWritable(layer) or (logLayer and not isWritable(logLayer)):
         return ok
@@ -383,7 +383,7 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', l
         layer.setSubsetString(subset)
     return ok
 
-def deleteAllFeatures(layer, undoMessage='Delete features', logLayer=None, timestamp=''):
+def deleteAllFeatures(layer, undoMessage='Delete features', logLayer=None, timestamp=None):
     return deleteFeatureRequest(QgsFeatureRequest(), layer, undoMessage, logLayer, timestamp)
 
 def childGroupIndex(parentGroupName, childGroupName):
