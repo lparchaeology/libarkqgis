@@ -272,22 +272,23 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
         toLayer.setSubsetString('')
     # Copy the requested features
     wasEditing = toLayer.isEditable()
-    if (wasEditing or toLayer.startEditing()) and (logLayer is None or logLayer.startEditing()):
+    if (wasEditing or toLayer.startEditing()) and (logLayer is None or logLayer.isEditable() or logLayer.startEditing()):
         if wasEditing:
             toLayer.beginEditCommand(undoMessage)
         logFeature = None
         if logLayer:
             if wasEditing:
                 logLayer.beginEditCommand(undoMessage)
-            logFeature = QgsFeature(logLayer.fields())
-            logFeature.setAttribute('event', 'insert')
-            logFeature.setAttribute('timestamp', timestamp)
         ft = 0
         for feature in fromLayer.getFeatures(featureRequest):
             ft += 1
             if logLayer:
+                logFeature = QgsFeature(logLayer.fields())
                 logFeature.setGeometry(feature.geometry())
-                logFeature.setAttributes(feature.attributes())
+                for field in fromLayer.fields():
+                    logFeature.setAttribute(field.name(), feature.attribute(field.name()))
+                logFeature.setAttribute('event', 'insert')
+                logFeature.setAttribute('timestamp', timestamp)
                 ok = logLayer.addFeature(logFeature) and toLayer.addFeature(feature)
             else:
                 ok = toLayer.addFeature(feature)
@@ -311,7 +312,10 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
                 ok = toLayer.commitChanges()
             if not ok:
                 if logLayer:
-                    logLayer.rollback()
+                    try:
+                        logLayer.rollback()
+                    except:
+                        utils.logMessage('TODO: Rollback on log layer???')
                 toLayer.rollBack()
         if ft == 0:
             ok = True
@@ -335,22 +339,23 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', l
         layer.setSubsetString('')
     # Copy the requested features
     wasEditing = layer.isEditable()
-    if (wasEditing or layer.startEditing()) and (logLayer is None or logLayer.startEditing()):
+    if (wasEditing or layer.startEditing()) and (logLayer is None or logLayer.isEditable() or logLayer.startEditing()):
         if wasEditing:
             layer.beginEditCommand(undoMessage)
         logFeature = None
         if logLayer:
             if wasEditing:
                 logLayer.beginEditCommand(undoMessage)
-            logFeature = QgsFeature(logLayer.fields())
-            logFeature.setAttribute('event', 'delete')
-            logFeature.setAttribute('timestamp', timestamp)
         ft = 0
         for feature in layer.getFeatures(featureRequest):
             ft += 1
             if logLayer:
+                logFeature = QgsFeature(logLayer.fields())
                 logFeature.setGeometry(feature.geometry())
-                logFeature.setAttributes(feature.attributes())
+                for field in layer.fields():
+                    logFeature.setAttribute(field.name(), feature.attribute(field.name()))
+                logFeature.setAttribute('event', 'delete')
+                logFeature.setAttribute('timestamp', timestamp)
                 ok = logLayer.addFeature(logFeature) and layer.deleteFeature(feature.id())
             else:
                 ok = layer.deleteFeature(feature.id())

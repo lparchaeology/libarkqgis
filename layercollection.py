@@ -267,7 +267,6 @@ class LayerCollection:
 
     # Load the log layer, create it if it doesn't alreay exist
     def _loadLogLayer(self, sourceLayer, layerPath, layerName):
-        utils.logMessage('_loadLogLayer ' + str(layerPath) + ' ' + str(layerName))
         layer = None
         layerId = ''
         if (layerName and layerPath and sourceLayer and sourceLayer.isValid()):
@@ -316,8 +315,6 @@ class LayerCollection:
             self.polygonsLog, self.polygonsLogId = self._loadLogLayer(self.polygonsLayer, self.settings.polygonsLogPath, self.settings.polygonsLogName)
             self.linesLog, self.linesLogId = self._loadLogLayer(self.linesLayer, self.settings.linesLogPath, self.settings.linesLogName)
             self.pointsLog, self.pointsLogId = self._loadLogLayer(self.pointsLayer, self.settings.pointsLogPath, self.settings.pointsLogName)
-        else:
-            utils.logMessage('self.settings.log ' + str(self.settings.collection) + ' ' + str(self.settings.log))
 
         # TODO actually check if is OK
         return True
@@ -369,16 +366,16 @@ class LayerCollection:
             self.deleteFeatureRequest(featureRequest, logMessage, timestamp)
 
     def copyFeatureRequestToBuffers(self, featureRequest, logMessage='Copy Features to Buffer', timestamp=None):
-        return (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, undoMessage + ' - points', self.pointsLog, timestamp)
-                and layers.copyFeatureRequest(featureRequest, self.linesLayer, self.linesBuffer, undoMessage + ' - lines', self.linesLog, timestamp)
-                and layers.copyFeatureRequest(featureRequest, self.polygonsLayer, self.polygonsBuffer, undoMessage + ' - polygons', self.polygonsLog, timestamp))
+        return (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, logMessage + ' - points', self.pointsLog, timestamp)
+                and layers.copyFeatureRequest(featureRequest, self.linesLayer, self.linesBuffer, logMessage + ' - lines', self.linesLog, timestamp)
+                and layers.copyFeatureRequest(featureRequest, self.polygonsLayer, self.polygonsBuffer, logMessage + ' - polygons', self.polygonsLog, timestamp))
 
     def deleteFeatureRequest(self, featureRequest, logMessage = 'Delete Features', timestamp=None):
         if timestamp is None and self.settings.log:
             timestamp = utils.timestamp()
-        layers.deleteFeatureRequest(featureRequest, self.pointsLayer, undoMessage + ' - points', self.pointsLog, timestamp)
-        layers.deleteFeatureRequest(featureRequest, self.linesLayer, undoMessage + ' - lines', self.linesLog, timestamp)
-        layers.deleteFeatureRequest(featureRequest, self.polygonsLayer, undoMessage + ' - polygons', self.polygonsLog, timestamp)
+        layers.deleteFeatureRequest(featureRequest, self.pointsLayer, logMessage + ' - points', self.pointsLog, timestamp)
+        layers.deleteFeatureRequest(featureRequest, self.linesLayer, logMessage + ' - lines', self.linesLog, timestamp)
+        layers.deleteFeatureRequest(featureRequest, self.polygonsLayer, logMessage + ' - polygons', self.polygonsLog, timestamp)
 
     def setVisible(self, status):
         self.setPointsVisible(status)
