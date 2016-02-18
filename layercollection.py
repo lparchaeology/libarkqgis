@@ -74,6 +74,7 @@ class LayerCollectionSettings:
     @staticmethod
     def fromProject(projectScope, collection):
         scope = projectScope + '/collections/' + collection
+        utils.logMessage('toProject ' + scope)
         lcs = LayerCollectionSettings()
         lcs.collection = Project.readEntry(scope, 'collection')
         lcs.collectionPath = Project.readEntry(scope, 'collectionPath')
@@ -109,6 +110,7 @@ class LayerCollectionSettings:
 
     def toProject(self, projectScope):
         scope = projectScope + '/collections/' + self.collection
+        utils.logMessage('toProject ' + scope)
         Project.writeEntry(scope, 'collection', self.collection)
         Project.writeEntry(scope, 'collectionPath', self.collectionPath)
         Project.writeEntry(scope, 'collectionGroupName', self.collectionGroupName)
@@ -224,17 +226,22 @@ class LayerCollection:
                 self.polygonsBufferId = ''
 
     def _removeLayer(self, layerName):
-        layerList = QgsMapLayerRegistry.instance().mapLayersByName(layerName)
-        for layer in layerList:
-            QgsMapLayerRegistry.instance().removeMapLayer(layer.id())
+        if layerName:
+            layerList = QgsMapLayerRegistry.instance().mapLayersByName(layerName)
+            for layer in layerList:
+                QgsMapLayerRegistry.instance().removeMapLayer(layer.id())
 
     # Load the main layer, must alreay exist
     def _loadLayer(self, layerPath, layerName, stylePath):
+        utils.logMessage('_loadLayer ' + layerName)
         layer = None
         layerId = ''
-        fullLayerPath = self.projectPath + '/' + layerPath
-        if (layerName and layerPath):
-            self._removeLayer(layerName)
+        layerList = QgsMapLayerRegistry.instance().mapLayersByName(layerName)
+        if (len(layerList) > 0):
+            layer = layerList[0]
+            self._iface.legendInterface().moveLayer(layer, self._collectionGroupIndex)
+        else:
+            fullLayerPath = self.projectPath + '/' + layerPath
             layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
         if layer and layer.isValid():
             layerId = layer.id()
@@ -247,46 +254,63 @@ class LayerCollection:
 
     # Load the buffer layer, create it if it doesn't alreay exist
     def _loadBufferLayer(self, sourceLayer, layerPath, layerName):
+        utils.logMessage('_loadBufferLayer = ' + layerName)
         layer = None
         layerId = ''
-        fullLayerPath = self.projectPath + '/' + layerPath
-        if (layerName and layerPath and sourceLayer and sourceLayer.isValid()):
-            self._removeLayer(layerName)
-            if not QFile.exists(fullLayerPath):
-                # If the layer doesn't exist, clone from the source layer
-                layer = layers.cloneAsShapefile(sourceLayer, fullLayerPath, layerName)
-            else:
-                # If the layer does exist, then load it and copy the style
-                layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
-                if layer and layer.isValid():
-                    layers.loadStyle(layer, fromLayer=sourceLayer)
+        layerList = QgsMapLayerRegistry.instance().mapLayersByName(layerName)
+        if (len(layerList) > 0):
+            utils.logMessage('already loaded')
+            layer = layerList[0]
+            self._iface.legendInterface().moveLayer(layer, self._bufferGroupIndex)
+        else:
+            utils.logMessage('not loaded')
+            fullLayerPath = self.projectPath + '/' + layerPath
+            if (layerName and layerPath and sourceLayer and sourceLayer.isValid()):
+                if not QFile.exists(fullLayerPath):
+                    utils.logMessage('cloning')
+                    # If the layer doesn't exist, clone from the source layer
+                    layer = layers.cloneAsShapefile(sourceLayer, fullLayerPath, layerName)
+                else:
+                    utils.logMessage('loading')
+                    # If the layer does exist, then load it and copy the style
+                    layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
+                    if layer and layer.isValid():
+                        layers.loadStyle(layer, fromLayer=sourceLayer)
         if layer and layer.isValid():
+            utils.logMessage('valid')
             layerId = layer.id()
             self._setDefaultSnapping(layer)
             layer.startEditing()
+            layer.setFeatureFormSuppress(QgsVectorLayer.SuppressOn)
             layer = layers.addLayerToLegend(self._iface, layer, self._bufferGroupIndex)
         else:
+            utils.logMessage('not valid!')
             layer = None
+        utils.logMessage('ret = ' + str(layer) + ' ' + str(layerId))
         return layer, layerId
 
     # Load the log layer, create it if it doesn't alreay exist
     def _loadLogLayer(self, sourceLayer, layerPath, layerName):
         layer = None
         layerId = ''
-        fullLayerPath = self.projectPath + '/' + layerPath
-        if (layerName and layerPath and sourceLayer and sourceLayer.isValid()):
-            self._removeLayer(layerName)
-            if not QFile.exists(fullLayerPath):
-                # If the layer doesn't exist, clone from the source layer
-                layer = layers.cloneAsShapefile(sourceLayer, fullLayerPath, layerName)
-                if layer and layer.isValid():
-                    layer.dataProvider().addAttributes([QgsField('timestamp', QVariant.String, '', 10, 0, 'timestamp')])
-                    layer.dataProvider().addAttributes([QgsField('event', QVariant.String, '', 6, 0, 'event')])
-            else:
-                # If the layer does exist, then load it and copy the style
-                layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
-                if layer and layer.isValid():
-                    layers.loadStyle(layer, fromLayer=sourceLayer)
+        layerList = QgsMapLayerRegistry.instance().mapLayersByName(layerName)
+        if (len(layerList) > 0):
+            layer = layerList[0]
+            self._iface.legendInterface().moveLayer(layer, self._bufferGroupIndex)
+        else:
+            fullLayerPath = self.projectPath + '/' + layerPath
+            if (layerName and layerPath and sourceLayer and sourceLayer.isValid()):
+                if not QFile.exists(fullLayerPath):
+                    # If the layer doesn't exist, clone from the source layer
+                    layer = layers.cloneAsShapefile(sourceLayer, fullLayerPath, layerName)
+                    if layer and layer.isValid():
+                        layer.dataProvider().addAttributes([QgsField('timestamp', QVariant.String, '', 10, 0, 'timestamp')])
+                        layer.dataProvider().addAttributes([QgsField('event', QVariant.String, '', 6, 0, 'event')])
+                else:
+                    # If the layer does exist, then load it and copy the style
+                    layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
+                    if layer and layer.isValid():
+                        layers.loadStyle(layer, fromLayer=sourceLayer)
         if layer and layer.isValid():
             layerId = layer.id()
             layer.setFeatureFormSuppress(QgsVectorLayer.SuppressOn)
@@ -296,7 +320,7 @@ class LayerCollection:
 
     # Load the collection layers if not already loaded
     def loadCollection(self):
-
+        utils.logMessage('loadCollection ' + self.settings.collection)
         # Load the main layers
         if self._collectionGroupIndex < 0:
             self._collectionGroupIndex = layers.createLayerGroup(self._iface, self.settings.collectionGroupName, self.settings.parentGroupName)
@@ -306,6 +330,7 @@ class LayerCollection:
 
         # Load the edit buffers if required
         if self.settings.bufferGroupName:
+            utils.logMessage('load buffers')
             if self._bufferGroupIndex < 0:
                 grp = layers.insertChildGroup(self.settings.collectionGroupName, self.settings.bufferGroupName, 0)
                 self._bufferGroupIndex = layers.getGroupIndex(self._iface, self.settings.bufferGroupName)
@@ -314,6 +339,8 @@ class LayerCollection:
             self.pointsBuffer, self.pointsBufferId = self._loadBufferLayer(self.pointsLayer, self.settings.pointsBufferPath, self.settings.pointsBufferName)
             for child in grp.children():
                 child.setExpanded(False)
+        else:
+            utils.logMessage('not load buffers!!!')
 
         # Load the log buffers if required
         if self.settings.log:

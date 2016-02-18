@@ -436,11 +436,12 @@ def applySelectionRequest(layer, request):
     layer.setSelectedFeatures([f.id() for f in fit])
 
 def uniqueValues(layer, fieldName):
-    values = layer.uniqueValues(layer.fieldNameIndex(fieldName))
     res = set()
-    for val in values:
-        if val != NULL:
-            res.add(val)
+    if layer and layer.isValid():
+        values = layer.uniqueValues(layer.fieldNameIndex(fieldName))
+        for val in values:
+            if val != NULL:
+                res.add(val)
     return res
 
 def updateAttribute(layer, attribute, value, expression=None):
