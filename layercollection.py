@@ -72,75 +72,73 @@ class LayerCollectionSettings:
     polygonsLogPath = ''
 
     @staticmethod
-    def fromProject(projectScope, collection):
-        scope = projectScope + '/collections/' + collection
-        utils.logMessage('toProject ' + scope)
+    def fromProject(scope, collection):
+        path = 'collections/' + collection + '/'
         lcs = LayerCollectionSettings()
-        lcs.collection = Project.readEntry(scope, 'collection')
-        lcs.collectionPath = Project.readEntry(scope, 'collectionPath')
-        lcs.collectionGroupName = Project.readEntry(scope, 'collectionGroupName')
-        lcs.parentGroupName = Project.readEntry(scope, 'parentGroupName')
-        lcs.bufferGroupName = Project.readEntry(scope, 'bufferGroupName')
-        lcs.log = Project.readBoolEntry(scope, 'log')
-        lcs.pointsLayerLabel = Project.readEntry(scope, 'pointsLayerLabel')
-        lcs.pointsLayerName = Project.readEntry(scope, 'pointsLayerName')
-        lcs.pointsLayerPath = Project.readEntry(scope, 'pointsLayerPath')
-        lcs.pointsStylePath = Project.readEntry(scope, 'pointsStylePath')
-        lcs.pointsBufferName = Project.readEntry(scope, 'pointsBufferName')
-        lcs.pointsBufferPath = Project.readEntry(scope, 'pointsBufferPath')
-        lcs.pointsLogName = Project.readEntry(scope, 'pointsLogName')
-        lcs.pointsLogPath = Project.readEntry(scope, 'pointsLogPath')
-        lcs.linesLayerLabel = Project.readEntry(scope, 'linesLayerLabel')
-        lcs.linesLayerName = Project.readEntry(scope, 'linesLayerName')
-        lcs.linesLayerPath = Project.readEntry(scope, 'linesLayerPath')
-        lcs.linesStylePath = Project.readEntry(scope, 'linesStylePath')
-        lcs.linesBufferName = Project.readEntry(scope, 'linesBufferName')
-        lcs.linesBufferPath = Project.readEntry(scope, 'linesBufferPath')
-        lcs.linesLogName = Project.readEntry(scope, 'linesLogName')
-        lcs.linesLogPath = Project.readEntry(scope, 'linesLogPath')
-        lcs.polygonsLayerLabel = Project.readEntry(scope, 'polygonsLayerLabel')
-        lcs.polygonsLayerName = Project.readEntry(scope, 'polygonsLayerName')
-        lcs.polygonsLayerPath = Project.readEntry(scope, 'polygonsLayerPath')
-        lcs.polygonsStylePath = Project.readEntry(scope, 'polygonsStylePath')
-        lcs.polygonsBufferName = Project.readEntry(scope, 'polygonsBufferName')
-        lcs.polygonsBufferPath = Project.readEntry(scope, 'polygonsBufferPath')
-        lcs.polygonsLogName = Project.readEntry(scope, 'polygonsLogName')
-        lcs.polygonsLogPath = Project.readEntry(scope, 'polygonsLogPath')
+        lcs.collection = Project.readEntry(scope, path + 'collection')
+        lcs.collectionPath = Project.readEntry(scope, path + 'collectionPath')
+        lcs.collectionGroupName = Project.readEntry(scope, path + 'collectionGroupName')
+        lcs.parentGroupName = Project.readEntry(scope, path + 'parentGroupName')
+        lcs.bufferGroupName = Project.readEntry(scope, path + 'bufferGroupName')
+        lcs.log = Project.readBoolEntry(scope, path + 'log')
+        lcs.pointsLayerLabel = Project.readEntry(scope, path + 'pointsLayerLabel')
+        lcs.pointsLayerName = Project.readEntry(scope, path + 'pointsLayerName')
+        lcs.pointsLayerPath = Project.readEntry(scope, path + 'pointsLayerPath')
+        lcs.pointsStylePath = Project.readEntry(scope, path + 'pointsStylePath')
+        lcs.pointsBufferName = Project.readEntry(scope, path + 'pointsBufferName')
+        lcs.pointsBufferPath = Project.readEntry(scope, path + 'pointsBufferPath')
+        lcs.pointsLogName = Project.readEntry(scope, path + 'pointsLogName')
+        lcs.pointsLogPath = Project.readEntry(scope, path + 'pointsLogPath')
+        lcs.linesLayerLabel = Project.readEntry(scope, path + 'linesLayerLabel')
+        lcs.linesLayerName = Project.readEntry(scope, path + 'linesLayerName')
+        lcs.linesLayerPath = Project.readEntry(scope, path + 'linesLayerPath')
+        lcs.linesStylePath = Project.readEntry(scope, path + 'linesStylePath')
+        lcs.linesBufferName = Project.readEntry(scope, path + 'linesBufferName')
+        lcs.linesBufferPath = Project.readEntry(scope, path + 'linesBufferPath')
+        lcs.linesLogName = Project.readEntry(scope, path + 'linesLogName')
+        lcs.linesLogPath = Project.readEntry(scope, path + 'linesLogPath')
+        lcs.polygonsLayerLabel = Project.readEntry(scope, path + 'polygonsLayerLabel')
+        lcs.polygonsLayerName = Project.readEntry(scope, path + 'polygonsLayerName')
+        lcs.polygonsLayerPath = Project.readEntry(scope, path + 'polygonsLayerPath')
+        lcs.polygonsStylePath = Project.readEntry(scope, path + 'polygonsStylePath')
+        lcs.polygonsBufferName = Project.readEntry(scope, path + 'polygonsBufferName')
+        lcs.polygonsBufferPath = Project.readEntry(scope, path + 'polygonsBufferPath')
+        lcs.polygonsLogName = Project.readEntry(scope, path + 'polygonsLogName')
+        lcs.polygonsLogPath = Project.readEntry(scope, path + 'polygonsLogPath')
         return lcs
 
-    def toProject(self, projectScope):
-        scope = projectScope + '/collections/' + self.collection
-        utils.logMessage('toProject ' + scope)
-        Project.writeEntry(scope, 'collection', self.collection)
-        Project.writeEntry(scope, 'collectionPath', self.collectionPath)
-        Project.writeEntry(scope, 'collectionGroupName', self.collectionGroupName)
-        Project.writeEntry(scope, 'parentGroupName', self.parentGroupName)
-        Project.writeEntry(scope, 'bufferGroupName', self.bufferGroupName)
-        Project.writeEntry(scope, 'log', self.log)
-        Project.writeEntry(scope, 'pointsLayerLabel', self.pointsLayerLabel)
-        Project.writeEntry(scope, 'pointsLayerName', self.pointsLayerName)
-        Project.writeEntry(scope, 'pointsLayerPath', self.pointsLayerPath)
-        Project.writeEntry(scope, 'pointsStylePath', self.pointsStylePath)
-        Project.writeEntry(scope, 'pointsBufferName', self.pointsBufferName)
-        Project.writeEntry(scope, 'pointsBufferPath', self.pointsBufferPath)
-        Project.writeEntry(scope, 'pointsLogName', self.pointsLogName)
-        Project.writeEntry(scope, 'pointsLogPath', self.pointsLogPath)
-        Project.writeEntry(scope, 'linesLayerLabel', self.linesLayerLabel)
-        Project.writeEntry(scope, 'linesLayerName', self.linesLayerName)
-        Project.writeEntry(scope, 'linesLayerPath', self.linesLayerPath)
-        Project.writeEntry(scope, 'linesStylePath', self.linesStylePath)
-        Project.writeEntry(scope, 'linesBufferName', self.linesBufferName)
-        Project.writeEntry(scope, 'linesBufferPath', self.linesBufferPath)
-        Project.writeEntry(scope, 'linesLogName', self.linesLogName)
-        Project.writeEntry(scope, 'linesLogPath', self.linesLogPath)
-        Project.writeEntry(scope, 'polygonsLayerLabel', self.polygonsLayerLabel)
-        Project.writeEntry(scope, 'polygonsLayerName', self.polygonsLayerName)
-        Project.writeEntry(scope, 'polygonsLayerPath', self.polygonsLayerPath)
-        Project.writeEntry(scope, 'polygonsStylePath', self.polygonsStylePath)
-        Project.writeEntry(scope, 'polygonsBufferName', self.polygonsBufferName)
-        Project.writeEntry(scope, 'polygonsBufferPath', self.polygonsBufferPath)
-        Project.writeEntry(scope, 'polygonsLogName', self.polygonsLogName)
-        Project.writeEntry(scope, 'polygonsLogPath', self.polygonsLogPath)
+    def toProject(self, scope):
+        path = 'collections/' + self.collection + '/'
+        Project.writeEntry(scope, path + 'collection', self.collection)
+        Project.writeEntry(scope, path + 'collectionPath', self.collectionPath)
+        Project.writeEntry(scope, path + 'collectionGroupName', self.collectionGroupName)
+        Project.writeEntry(scope, path + 'parentGroupName', self.parentGroupName)
+        Project.writeEntry(scope, path + 'bufferGroupName', self.bufferGroupName)
+        Project.writeEntry(scope, path + 'log', self.log)
+        Project.writeEntry(scope, path + 'pointsLayerLabel', self.pointsLayerLabel)
+        Project.writeEntry(scope, path + 'pointsLayerName', self.pointsLayerName)
+        Project.writeEntry(scope, path + 'pointsLayerPath', self.pointsLayerPath)
+        Project.writeEntry(scope, path + 'pointsStylePath', self.pointsStylePath)
+        Project.writeEntry(scope, path + 'pointsBufferName', self.pointsBufferName)
+        Project.writeEntry(scope, path + 'pointsBufferPath', self.pointsBufferPath)
+        Project.writeEntry(scope, path + 'pointsLogName', self.pointsLogName)
+        Project.writeEntry(scope, path + 'pointsLogPath', self.pointsLogPath)
+        Project.writeEntry(scope, path + 'linesLayerLabel', self.linesLayerLabel)
+        Project.writeEntry(scope, path + 'linesLayerName', self.linesLayerName)
+        Project.writeEntry(scope, path + 'linesLayerPath', self.linesLayerPath)
+        Project.writeEntry(scope, path + 'linesStylePath', self.linesStylePath)
+        Project.writeEntry(scope, path + 'linesBufferName', self.linesBufferName)
+        Project.writeEntry(scope, path + 'linesBufferPath', self.linesBufferPath)
+        Project.writeEntry(scope, path + 'linesLogName', self.linesLogName)
+        Project.writeEntry(scope, path + 'linesLogPath', self.linesLogPath)
+        Project.writeEntry(scope, path + 'polygonsLayerLabel', self.polygonsLayerLabel)
+        Project.writeEntry(scope, path + 'polygonsLayerName', self.polygonsLayerName)
+        Project.writeEntry(scope, path + 'polygonsLayerPath', self.polygonsLayerPath)
+        Project.writeEntry(scope, path + 'polygonsStylePath', self.polygonsStylePath)
+        Project.writeEntry(scope, path + 'polygonsBufferName', self.polygonsBufferName)
+        Project.writeEntry(scope, path + 'polygonsBufferPath', self.polygonsBufferPath)
+        Project.writeEntry(scope, path + 'polygonsLogName', self.polygonsLogName)
+        Project.writeEntry(scope, path + 'polygonsLogPath', self.polygonsLogPath)
 
 
 class LayerCollection:
@@ -233,7 +231,6 @@ class LayerCollection:
 
     # Load the main layer, must alreay exist
     def _loadLayer(self, layerPath, layerName, stylePath):
-        utils.logMessage('_loadLayer ' + layerName)
         layer = None
         layerId = ''
         layerList = QgsMapLayerRegistry.instance().mapLayersByName(layerName)
@@ -243,50 +240,44 @@ class LayerCollection:
         else:
             fullLayerPath = self.projectPath + '/' + layerPath
             layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
+            layer = layers.addLayerToLegend(self._iface, layer, self._collectionGroupIndex)
         if layer and layer.isValid():
             layerId = layer.id()
             self._setDefaultSnapping(layer)
             layer.loadNamedStyle(stylePath)
-            layer = layers.addLayerToLegend(self._iface, layer, self._collectionGroupIndex)
+            self._iface.legendInterface().setLayerExpanded(layer, False)
         else:
             layer = None
         return layer, layerId
 
     # Load the buffer layer, create it if it doesn't alreay exist
     def _loadBufferLayer(self, sourceLayer, layerPath, layerName):
-        utils.logMessage('_loadBufferLayer = ' + layerName)
         layer = None
         layerId = ''
         layerList = QgsMapLayerRegistry.instance().mapLayersByName(layerName)
         if (len(layerList) > 0):
-            utils.logMessage('already loaded')
             layer = layerList[0]
             self._iface.legendInterface().moveLayer(layer, self._bufferGroupIndex)
         else:
-            utils.logMessage('not loaded')
             fullLayerPath = self.projectPath + '/' + layerPath
             if (layerName and layerPath and sourceLayer and sourceLayer.isValid()):
                 if not QFile.exists(fullLayerPath):
-                    utils.logMessage('cloning')
                     # If the layer doesn't exist, clone from the source layer
                     layer = layers.cloneAsShapefile(sourceLayer, fullLayerPath, layerName)
                 else:
-                    utils.logMessage('loading')
                     # If the layer does exist, then load it and copy the style
                     layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
                     if layer and layer.isValid():
                         layers.loadStyle(layer, fromLayer=sourceLayer)
+                layer = layers.addLayerToLegend(self._iface, layer, self._bufferGroupIndex)
         if layer and layer.isValid():
-            utils.logMessage('valid')
             layerId = layer.id()
             self._setDefaultSnapping(layer)
             layer.startEditing()
             layer.setFeatureFormSuppress(QgsVectorLayer.SuppressOn)
-            layer = layers.addLayerToLegend(self._iface, layer, self._bufferGroupIndex)
+            self._iface.legendInterface().setLayerExpanded(layer, False)
         else:
-            utils.logMessage('not valid!')
             layer = None
-        utils.logMessage('ret = ' + str(layer) + ' ' + str(layerId))
         return layer, layerId
 
     # Load the log layer, create it if it doesn't alreay exist
@@ -314,33 +305,27 @@ class LayerCollection:
         if layer and layer.isValid():
             layerId = layer.id()
             layer.setFeatureFormSuppress(QgsVectorLayer.SuppressOn)
+            self._iface.legendInterface().setLayerExpanded(layer, False)
         else:
             layer = None
         return layer, layerId
 
     # Load the collection layers if not already loaded
     def loadCollection(self):
-        utils.logMessage('loadCollection ' + self.settings.collection)
         # Load the main layers
-        if self._collectionGroupIndex < 0:
-            self._collectionGroupIndex = layers.createLayerGroup(self._iface, self.settings.collectionGroupName, self.settings.parentGroupName)
+        self._collectionGroupIndex = layers.createLayerGroup(self._iface, self.settings.collectionGroupName, self.settings.parentGroupName)
         self.polygonsLayer, self.polygonsLayerId = self._loadLayer(self.settings.polygonsLayerPath, self.settings.polygonsLayerName, self.settings.polygonsStylePath)
         self.linesLayer, self.linesLayerId = self._loadLayer(self.settings.linesLayerPath, self.settings.linesLayerName, self.settings.linesStylePath)
         self.pointsLayer, self.pointsLayerId = self._loadLayer(self.settings.pointsLayerPath, self.settings.pointsLayerName, self.settings.pointsStylePath)
 
         # Load the edit buffers if required
         if self.settings.bufferGroupName:
-            utils.logMessage('load buffers')
-            if self._bufferGroupIndex < 0:
-                grp = layers.insertChildGroup(self.settings.collectionGroupName, self.settings.bufferGroupName, 0)
-                self._bufferGroupIndex = layers.getGroupIndex(self._iface, self.settings.bufferGroupName)
+            self._bufferGroupIndex = layers.createLayerGroup(self._iface, self.settings.bufferGroupName, self.settings.collectionGroupName)
+            layers.moveChildGroup(self.settings.collectionGroupName, self.settings.bufferGroupName, 0)
+            self._bufferGroupIndex = layers.getGroupIndex(self._iface, self.settings.bufferGroupName)
             self.polygonsBuffer, self.polygonsBufferId = self._loadBufferLayer(self.polygonsLayer, self.settings.polygonsBufferPath, self.settings.polygonsBufferName)
             self.linesBuffer, self.linesBufferId = self._loadBufferLayer(self.linesLayer, self.settings.linesBufferPath, self.settings.linesBufferName)
             self.pointsBuffer, self.pointsBufferId = self._loadBufferLayer(self.pointsLayer, self.settings.pointsBufferPath, self.settings.pointsBufferName)
-            for child in grp.children():
-                child.setExpanded(False)
-        else:
-            utils.logMessage('not load buffers!!!')
 
         # Load the log buffers if required
         if self.settings.log:

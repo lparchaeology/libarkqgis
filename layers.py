@@ -224,10 +224,11 @@ def getLayerId(layerName):
         return layerList[0].id()
     return None
 
-def addLayerToLegend(iface, layer, group):
+def addLayerToLegend(iface, layer, group=-1):
     if (layer is not None and layer.isValid()):
         ret = QgsMapLayerRegistry.instance().addMapLayer(layer)
-        iface.legendInterface().moveLayer(layer, group)
+        if group >= 0:
+            iface.legendInterface().moveLayer(layer, group)
         iface.legendInterface().refreshLayerSymbology(layer)
         return ret
     return layer
@@ -413,6 +414,30 @@ def insertChildGroup(parentGroupName, childGroupName, childIndex):
     if parent is None:
         return None
     return parent.insertGroup(childIndex, childGroupName)
+
+def moveChildGroup(parentGroupName, childGroupName, childIndex):
+    root = QgsProject.instance().layerTreeRoot()
+    if root is None:
+        return
+    parent = root.findGroup(parentGroupName)
+    if parent is None:
+        return
+    child = parent.findGroup(childGroupName)
+    if child is None:
+        return
+    cloneChild = child.clone()
+    parent.insertChildNode(childIndex, cloneChild)
+    parent.removeChildNode(child)
+
+def collapseChildren(groupName):
+    root = QgsProject.instance().layerTreeRoot()
+    if root is None:
+        return
+    group = root.findGroup(groupName)
+    if group is None:
+        return
+    for child in group.children():
+        child.setExpanded(False)
 
 def applyFilter(iface, layer, expression):
     if (layer is None or not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer):
