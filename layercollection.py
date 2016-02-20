@@ -379,13 +379,22 @@ class LayerCollection:
         return layers.deleteAllFeatures(layer, undoMessage, timestamp) and layer.commitChanges() and layer.startEditing()
 
     def moveFeatureRequestToBuffers(self, featureRequest, logMessage='Move Features', timestamp=None):
-        if self.copyFeatureRequestToBuffers(featureRequest, logMessage, timestamp):
+        if self.pointsBuffer.isEditable():
+            self.pointsBuffer.commitChanges()
+        if self.linesBuffer.isEditable():
+            self.linesBuffer.commitChanges()
+        if self.polygonsBuffer.isEditable():
+            self.polygonsBuffer.commitChanges()
+        if self.copyFeatureRequestToBuffers(featureRequest, logMessage):
             self.deleteFeatureRequest(featureRequest, logMessage, timestamp)
+        self.pointsBuffer.startEditing()
+        self.linesBuffer.startEditing()
+        self.polygonsBuffer.startEditing()
 
-    def copyFeatureRequestToBuffers(self, featureRequest, logMessage='Copy Features to Buffer', timestamp=None):
-        return (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, logMessage + ' - points', self.pointsLog, timestamp)
-                and layers.copyFeatureRequest(featureRequest, self.linesLayer, self.linesBuffer, logMessage + ' - lines', self.linesLog, timestamp)
-                and layers.copyFeatureRequest(featureRequest, self.polygonsLayer, self.polygonsBuffer, logMessage + ' - polygons', self.polygonsLog, timestamp))
+    def copyFeatureRequestToBuffers(self, featureRequest, logMessage='Copy Features to Buffer'):
+        return (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, logMessage + ' - points')
+                and layers.copyFeatureRequest(featureRequest, self.linesLayer, self.linesBuffer, logMessage + ' - lines')
+                and layers.copyFeatureRequest(featureRequest, self.polygonsLayer, self.polygonsBuffer, logMessage + ' - polygons'))
 
     def deleteFeatureRequest(self, featureRequest, logMessage = 'Delete Features', timestamp=None):
         if timestamp is None and self.settings.log:
