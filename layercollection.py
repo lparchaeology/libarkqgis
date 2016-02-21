@@ -379,6 +379,7 @@ class LayerCollection:
         return layers.deleteAllFeatures(layer, undoMessage, timestamp) and layer.commitChanges() and layer.startEditing()
 
     def moveFeatureRequestToBuffers(self, featureRequest, logMessage='Move Features', timestamp=None):
+        ret = False
         if self.pointsBuffer.isEditable():
             self.pointsBuffer.commitChanges()
         if self.linesBuffer.isEditable():
@@ -386,10 +387,11 @@ class LayerCollection:
         if self.polygonsBuffer.isEditable():
             self.polygonsBuffer.commitChanges()
         if self.copyFeatureRequestToBuffers(featureRequest, logMessage):
-            self.deleteFeatureRequest(featureRequest, logMessage, timestamp)
+            ret = self.deleteFeatureRequest(featureRequest, logMessage, timestamp)
         self.pointsBuffer.startEditing()
         self.linesBuffer.startEditing()
         self.polygonsBuffer.startEditing()
+        return ret
 
     def copyFeatureRequestToBuffers(self, featureRequest, logMessage='Copy Features to Buffer'):
         return (layers.copyFeatureRequest(featureRequest, self.pointsLayer, self.pointsBuffer, logMessage + ' - points')
@@ -399,9 +401,9 @@ class LayerCollection:
     def deleteFeatureRequest(self, featureRequest, logMessage = 'Delete Features', timestamp=None):
         if timestamp is None and self.settings.log:
             timestamp = utils.timestamp()
-        layers.deleteFeatureRequest(featureRequest, self.pointsLayer, logMessage + ' - points', self.pointsLog, timestamp)
-        layers.deleteFeatureRequest(featureRequest, self.linesLayer, logMessage + ' - lines', self.linesLog, timestamp)
-        layers.deleteFeatureRequest(featureRequest, self.polygonsLayer, logMessage + ' - polygons', self.polygonsLog, timestamp)
+        return (layers.deleteFeatureRequest(featureRequest, self.pointsLayer, logMessage + ' - points', self.pointsLog, timestamp)
+                and layers.deleteFeatureRequest(featureRequest, self.linesLayer, logMessage + ' - lines', self.linesLog, timestamp)
+                and layers.deleteFeatureRequest(featureRequest, self.polygonsLayer, logMessage + ' - polygons', self.polygonsLog, timestamp))
 
     def setVisible(self, status):
         self.setPointsVisible(status)
