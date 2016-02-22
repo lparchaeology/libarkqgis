@@ -380,7 +380,10 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', l
                 ok = layer.commitChanges()
             if not ok:
                 if logLayer:
-                    logLayer.rollback()
+                    try:
+                        logLayer.rollback()
+                    except:
+                        utils.logMessage('TODO: Rollback on log layer???')
                 layer.rollBack()
         if ft == 0:
             ok = True
