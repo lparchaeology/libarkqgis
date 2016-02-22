@@ -41,6 +41,10 @@ def printable(val):
         return str(val)
     if val == '':
         return '<EMPTY>'
+    if type(val) == str:
+        return 'str(' + val + ')'
+    if type(val) == unicode:
+        return 'unicode(' + val + ')'
     if type(val) == QgsPoint:
         return 'QgsPoint(' + val.toString(3) + ')'
     if type(val) == QgsGeometry:
