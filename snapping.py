@@ -38,7 +38,7 @@ from qgis.core import QGis, QgsProject, QgsMapLayer, QgsMessageLog, QgsMapLayerR
 from project import Project
 from dock import ArkDockWidget
 
-import resources_rc
+import resources
 
 # Project setting utilities
 

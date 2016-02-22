@@ -35,7 +35,7 @@ from qgis.gui import QgsMessageBar
 from project import Project
 
 # Initialize Qt resources from file resources.py
-import resources_rc
+import resources
 
 class Plugin(QObject):
     """QGIS Plugin Base Class."""
