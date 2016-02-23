@@ -285,7 +285,8 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
             ft += 1
             if logLayer:
                 logFeature = QgsFeature(logLayer.fields())
-                logFeature.setGeometry(feature.geometry())
+                if feature.geometry():
+                    logFeature.setGeometry(feature.geometry())
                 for field in fromLayer.fields():
                     logFeature.setAttribute(field.name(), feature.attribute(field.name()))
                 logFeature.setAttribute('event', 'insert')
@@ -352,7 +353,8 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', l
             ft += 1
             if logLayer:
                 logFeature = QgsFeature(logLayer.fields())
-                logFeature.setGeometry(feature.geometry())
+                if feature.geometry():
+                    logFeature.setGeometry(feature.geometry())
                 for field in layer.fields():
                     logFeature.setAttribute(field.name(), feature.attribute(field.name()))
                 logFeature.setAttribute('event', 'delete')
