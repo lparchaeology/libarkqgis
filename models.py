@@ -40,10 +40,14 @@ class TableModel(QAbstractTableModel):
         self._nullRecord = nullRecord
         self._table = []
 
-    def rowCount(self):
+    def rowCount(self, parent=None):
+        if parent and parent.isValid():
+            return 0
         return len(self._table)
 
-    def columnCount(self):
+    def columnCount(self, parent=None):
+        if parent and parent.isValid():
+            return 0
         return len(self._fields)
 
     def data(self, index, role):
@@ -111,6 +115,8 @@ class TableModel(QAbstractTableModel):
     def clear(self):
         self._table = []
 
+    def appendRecord(self, record):
+       self._table.append(record)
 
 class ParentChildModel(TableModel):
 
