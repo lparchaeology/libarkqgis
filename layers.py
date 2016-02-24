@@ -260,8 +260,10 @@ def wkbToMemoryType(wkbType):
         return 'multipolygon'
     return 'unknown'
 
-def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy features', logLayer=None, timestamp=None):
+def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy features', log=False, logLayer=None, timestamp=None):
     ok = False
+    if log and (not logLayer or not timestamp):
+        return ok
     if not isWritable(toLayer) or (logLayer and not isWritable(logLayer)):
         return ok
     # Stash the current subset
@@ -277,13 +279,13 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
         if wasEditing:
             toLayer.beginEditCommand(undoMessage)
         logFeature = None
-        if logLayer:
+        if log:
             if wasEditing:
                 logLayer.beginEditCommand(undoMessage)
         ft = 0
         for feature in fromLayer.getFeatures(featureRequest):
             ft += 1
-            if logLayer:
+            if log:
                 logFeature = QgsFeature(logLayer.fields())
                 if feature.geometry():
                     logFeature.setGeometry(feature.geometry())
@@ -299,21 +301,21 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
         # If was already in edit mode, end or destroy the editing buffer
         if wasEditing:
             if ok:
-                if logLayer:
+                if log:
                     logLayer.endEditCommand()
                 toLayer.endEditCommand()
             else:
-                if logLayer:
+                if log:
                     logLayer.destroyEditCommand()
                 toLayer.destroyEditCommand()
         # If was already in edit mode, is up to caller to commit the log and layer
         if not wasEditing:
-            if ok and logLayer:
+            if ok and log:
                 ok = logLayer.commitChanges()
             if ok:
                 ok = toLayer.commitChanges()
             if not ok:
-                if logLayer:
+                if log:
                     try:
                         logLayer.rollback()
                     except:
@@ -328,11 +330,13 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
         toLayer.setSubsetString(toSubset)
     return ok
 
-def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features', logLayer=None, timestamp=None):
-    return copyFeatureRequest(QgsFeatureRequest(), fromLayer, toLayer, undoMessage, logLayer, timestamp)
+def copyAllFeatures(fromLayer, toLayer, undoMessage='Copy features', log=False, logLayer=None, timestamp=None):
+    return copyFeatureRequest(QgsFeatureRequest(), fromLayer, toLayer, undoMessage, log, logLayer, timestamp)
 
-def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', logLayer=None, timestamp=None):
+def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', log=False, logLayer=None, timestamp=None):
     ok = False
+    if log and (not logLayer or not timestamp):
+        return ok
     if not isWritable(layer) or (logLayer and not isWritable(logLayer)):
         return ok
     # Stash the current subset
@@ -345,13 +349,13 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', l
         if wasEditing:
             layer.beginEditCommand(undoMessage)
         logFeature = None
-        if logLayer:
+        if log:
             if wasEditing:
                 logLayer.beginEditCommand(undoMessage)
         ft = 0
         for feature in layer.getFeatures(featureRequest):
             ft += 1
-            if logLayer:
+            if log:
                 logFeature = QgsFeature(logLayer.fields())
                 if feature.geometry():
                     logFeature.setGeometry(feature.geometry())
@@ -367,21 +371,21 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', l
         # If was already in edit mode, end or destroy the editing buffer
         if wasEditing:
             if ok:
-                if logLayer:
+                if log:
                     logLayer.endEditCommand()
                 layer.endEditCommand()
             else:
-                if logLayer:
+                if log:
                     logLayer.destroyEditCommand()
                 layer.destroyEditCommand()
         # If was already in edit mode, is up to caller to commit the log and layer
         if not wasEditing:
-            if ok and logLayer:
+            if ok and log:
                 ok = logLayer.commitChanges()
             if ok:
                 ok = layer.commitChanges()
             if not ok:
-                if logLayer:
+                if log:
                     try:
                         logLayer.rollback()
                     except:
@@ -394,8 +398,8 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', l
         layer.setSubsetString(subset)
     return ok
 
-def deleteAllFeatures(layer, undoMessage='Delete features', logLayer=None, timestamp=None):
-    return deleteFeatureRequest(QgsFeatureRequest(), layer, undoMessage, logLayer, timestamp)
+def deleteAllFeatures(layer, undoMessage='Delete features', log=False, logLayer=None, timestamp=None):
+    return deleteFeatureRequest(QgsFeatureRequest(), layer, undoMessage, log, logLayer, timestamp)
 
 def childGroupIndex(parentGroupName, childGroupName):
     root = QgsProject.instance().layerTreeRoot()
