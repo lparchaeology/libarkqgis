@@ -42,9 +42,9 @@ def printable(val):
     if val == '':
         return '<EMPTY>'
     if type(val) == str:
-        return 'str(' + val + ')'
+        return 's' + doublequote(val)
     if type(val) == unicode:
-        return 'unicode(' + val + ')'
+        return 'u' + doublequote(val)
     if type(val) == QgsPoint:
         return 'QgsPoint(' + val.toString(3) + ')'
     if type(val) == QgsGeometry:
