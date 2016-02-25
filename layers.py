@@ -260,6 +260,28 @@ def wkbToMemoryType(wkbType):
         return 'multipolygon'
     return 'unknown'
 
+def getAllFeaturesRequest(featureRequest, layer):
+    # Stash the current selection
+    selection = []
+    if layer.selectedFeatureCount() > 0:
+        selection = layer.selectedFeaturesIds()
+    # Stash the current subset
+    subset = layer.subsetString()
+    # Clear the current subset
+    if subset:
+        layer.setSubsetString('')
+    # Get all the features
+    features = []
+    for feature in layer.getFeatures(featureRequest):
+        features.append(feature)
+    # Restore the previous subset
+    if subset:
+        layer.setSubsetString(subset)
+    # Restore the previous selection
+    if len(selection) > 0:
+        layer.select(selection)
+    return features
+
 def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy features', log=False, logLayer=None, timestamp=None):
     ok = False
     if log and (not logLayer or not timestamp):
