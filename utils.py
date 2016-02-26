@@ -124,7 +124,10 @@ def logWarning(text, group='Debug'):
     logMessage(text, QgsMessageLog.WARNING)
 
 def logMessage(text, group='Debug', level=QgsMessageLog.INFO):
-    QgsMessageLog.logMessage(text, group, level)
+    if isinstance(text, str) or isinstance(text, unicode):
+        QgsMessageLog.logMessage(text, group, level)
+    else:
+        QgsMessageLog.logMessage(printable(text), group, level)
 
 def showCritical(text, duration=5):
     showMessageBar(text, QgsMessageBar.CRITICAL, duration)
