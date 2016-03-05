@@ -282,6 +282,69 @@ def getAllFeaturesRequest(featureRequest, layer):
         layer.select(selection)
     return features
 
+def addFeatures(features, layer, undoMessage='Add features to layer', log=False, logLayer=None, timestamp=None):
+    ok = False
+    if log and (not logLayer or not timestamp):
+        return ok
+    if not isWritable(layer) or (logLayer and not isWritable(logLayer)):
+        return ok
+    # Stash the current subset
+    subset = layer.subsetString()
+    if subset:
+        layer.setSubsetString('')
+    # Copy the requested features
+    wasEditing = layer.isEditable()
+    if (wasEditing or layer.startEditing()) and (logLayer is None or logLayer.isEditable() or logLayer.startEditing()):
+        if wasEditing:
+            layer.beginEditCommand(undoMessage)
+        logFeature = None
+        if log:
+            if wasEditing:
+                logLayer.beginEditCommand(undoMessage)
+        ft = 0
+        for feature in features:
+            ft += 1
+            if log:
+                logFeature = QgsFeature(logLayer.fields())
+                if feature.geometry():
+                    logFeature.setGeometry(feature.geometry())
+                for field in layer.fields():
+                    logFeature.setAttribute(field.name(), feature.attribute(field.name()))
+                logFeature.setAttribute('event', 'insert')
+                logFeature.setAttribute('timestamp', timestamp)
+                ok = logLayer.addFeature(logFeature) and layer.addFeature(feature)
+            else:
+                ok = layer.addFeature(feature)
+        # If was already in edit mode, end or destroy the editing buffer
+        if wasEditing:
+            if ok:
+                if log:
+                    logLayer.endEditCommand()
+                layer.endEditCommand()
+            else:
+                if log:
+                    logLayer.destroyEditCommand()
+                layer.destroyEditCommand()
+        # If was already in edit mode, is up to caller to commit the log and layer
+        if not wasEditing:
+            if ok and log:
+                ok = logLayer.commitChanges()
+            if ok:
+                ok = layer.commitChanges()
+            if not ok:
+                if log:
+                    try:
+                        logLayer.rollback()
+                    except:
+                        utils.logMessage('TODO: Rollback on log layer???')
+                layer.rollBack()
+        if ft == 0:
+            ok = True
+    # Restore the previous subset
+    if subset:
+        layer.setSubsetString(subset)
+    return ok
+
 def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy features', log=False, logLayer=None, timestamp=None):
     ok = False
     if log and (not logLayer or not timestamp):
