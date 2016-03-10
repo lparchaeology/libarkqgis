@@ -24,14 +24,28 @@
  ***************************************************************************/
 """
 
-from PyQt4.QtCore import QSettings
-from PyQt4.QtGui import QColor
+from PyQt4.QtCore import QSettings, QFile
+from PyQt4.QtGui import QColor, QIcon
 
-from qgis.core import QGis, QgsProject
+from qgis.core import QGis, QgsProject, QgsApplication
 
 # Project setting utilities
 
 class Project:
+
+    @staticmethod
+    def getThemeIcon(iconName):
+        iconName =   '/' + iconName
+        if QFile.exists(QgsApplication.activeThemePath() + iconName):
+            return QIcon(QgsApplication.activeThemePath() + iconName)
+        elif QFile.exists(QgsApplication.defaultThemePath() + iconName):
+            return QIcon(QgsApplication.defaultThemePath() + iconName)
+        else:
+            themePath = ':/icons/' + QSettings().value('/Themes', '', str) + iconName
+            if QFile.exists(themePath):
+                return QIcon(themePath)
+            else:
+                return QIcon(':/icons/default' + iconName)
 
     @staticmethod
     def crs(iface):
