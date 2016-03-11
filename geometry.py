@@ -28,7 +28,7 @@
 """
 import math
 
-from qgis.core import QGis, QgsFeature, QgsGeometry, QgsPoint
+from qgis.core import QGis, QgsFeature, QgsGeometry, QgsPointV2
 
 from shapely.ops import polygonize, unary_union
 from shapely.geometry import LineString, MultiLineString, Point
@@ -50,13 +50,13 @@ class LinearTransformer():
 
     def map(self, p):
         #move to origin (translation part 1)
-        p = QgsPoint( p.x()-self.dx1, p.y()-self.dy1 )
+        p = QgsPointV2( p.x()-self.dx1, p.y()-self.dy1 )
         #scale
-        p = QgsPoint( self.ds*p.x(), self.ds*p.y() )
+        p = QgsPointV2( self.ds*p.x(), self.ds*p.y() )
         #rotation
-        p = QgsPoint(math.cos(self.da) * p.x() - math.sin(self.da) * p.y(), math.sin(self.da) * p.x() + math.cos(self.da) * p.y())
+        p = QgsPointV2(math.cos(self.da) * p.x() - math.sin(self.da) * p.y(), math.sin(self.da) * p.x() + math.cos(self.da) * p.y())
         #remove to right spot (translation part 2)
-        p = QgsPoint(p.x() + self.dx2, p.y() + self.dy2)
+        p = QgsPointV2(p.x() + self.dx2, p.y() + self.dy2)
 
         return p
 
@@ -107,10 +107,10 @@ def perpendicularPoint(lineGeometry, point):
     # In 2.14 use QgsGeometry.nearestPoint()
     # In 2.10 use QgsGeometry.isEmpty()
     if lineGeometry is None or lineGeometry.isGeosEmpty() or point is None:
-        return QgsPoint()
+        return QgsPointV2()
     line = toMultiLineString(lineGeometry)
     perp = line.interpolate(line.project(Point(point)))
-    return QgsPoint(perp.x, perp.y)
+    return QgsPointV2(perp.x, perp.y)
 
 # Returns a line cliipped to the extent of two given points
 # Assumes pt1, pt2 lie on line
@@ -136,7 +136,7 @@ def clipLine(lineGeometry, pt1, pt2):
         pt = Point(coord)
         dp = line.project(pt)
         if dp > ds and dp < de:
-            clip.append(QgsPoint(pt.x, pt.y))
+            clip.append(QgsPointV2(pt.x, pt.y))
     clip.append(end)
     return QgsGeometry.fromPolyline(clip)
 
