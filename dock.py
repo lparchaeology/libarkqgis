@@ -94,6 +94,7 @@ class ToolDockWidget(ArkDockWidget):
 
         self._layout = QVBoxLayout(self)
         self._layout.setObjectName(u'layout')
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addWidget(self.toolbar)
         self._layout.addWidget(self.toolbar2)
         self._layout.addWidget(self.widget)
