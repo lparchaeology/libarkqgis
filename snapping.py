@@ -602,7 +602,7 @@ class LayerSnappingTypeAction(SnappingTypeAction):
         self.snappingTypeChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
     def layerId(self):
-        if self._iface:
+        if self._iface and self._iface.legendInterface().currentLayer():
             return self._iface.legendInterface().currentLayer().id()
         return self._layerId
 
@@ -757,7 +757,7 @@ class LayerSnappingUnitAction(SnappingUnitAction):
         self.snappingUnitChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
     def layerId(self):
-        if self._iface:
+        if self._iface and self._iface.legendInterface().currentLayer():
             return self._iface.legendInterface().currentLayer().id()
         return self._layerId
 
@@ -1035,7 +1035,7 @@ class LayerSnappingEnabledAction(QAction):
         self._layerRemoved(self._layerId)
 
     def layerId(self):
-        if self._iface:
+        if self._iface and self._iface.legendInterface().currentLayer():
             return self._iface.legendInterface().currentLayer().id()
         return self._layerId
 
@@ -1071,7 +1071,7 @@ class LayerSnappingAvoidIntersectionsAction(QAction):
     """QAction to toggle Layer Avoid Intersections
     """
 
-    layerId = ''
+    _layerId = ''
     _iface = None  # QgisInteface
 
     avoidIntersectionsChanged = pyqtSignal(str, bool)
@@ -1113,7 +1113,7 @@ class LayerSnappingAvoidIntersectionsAction(QAction):
         self.avoidIntersectionsChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
     def layerId(self):
-        if self._iface:
+        if self._iface and self._iface.legendInterface().currentLayer():
             return self._iface.legendInterface().currentLayer().id()
         return self._layerId
 
@@ -1462,7 +1462,8 @@ class LayerSnappingAction(LayerSnappingEnabledAction):
         else: # Snapping.Vertex or undefined
             self.setIcon(self._vertexAction.icon())
         if self._iface and self._avoidAction:
-            isPolygon = QgsMapLayerRegistry.instance().mapLayer(self.layerId()).geometryType() == QGis.Polygon
+            layer = QgsMapLayerRegistry.instance().mapLayer(self.layerId())
+            isPolygon = layer and layer.geometryType() == QGis.Polygon
             self._avoidAction.setEnabled(isPolygon)
 
 # Individual Project Snapping Widgets
