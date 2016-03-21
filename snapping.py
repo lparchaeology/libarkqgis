@@ -30,7 +30,7 @@ API and Widgets to use to configure QGIS project snapping settings
 This module provides a set of widgets to allow easy configuration of QGIS vector layer snapping.
 """
 
-from PyQt4.QtCore import Qt, pyqtSignal, QSettings
+from PyQt4.QtCore import Qt, pyqtSignal, QSettings, QEvent
 from PyQt4.QtGui import QWidget, QToolButton, QMenu, QIcon, QAction, QActionGroup, QWidgetAction, QDoubleSpinBox, QComboBox
 
 from qgis.core import QGis, QgsProject, QgsMapLayer, QgsVectorLayer, QgsMessageLog, QgsMapLayerRegistry
@@ -236,7 +236,7 @@ class Snapping():
 
     @staticmethod
     def layerSnappingEnabled(layerId):
-        value = Snapping._layerSnappingValue(layerId, "/LayerSnappingEnabledList", Snapping.Vertex)
+        value = Snapping._layerSnappingValue(layerId, "/LayerSnappingEnabledList", u'disabled')
         return (value == u'enabled')
 
     @staticmethod
@@ -294,6 +294,8 @@ class Snapping():
 
     @staticmethod
     def _layerSnappingValue(layerId, layerListId, defaultValue):
+        if not layerId:
+            return defaultValue
         layerIdList = Project.readListEntry("Digitizing", "/LayerSnappingList")
         valueList = Project.readListEntry("Digitizing", layerListId)
         try:
@@ -304,6 +306,8 @@ class Snapping():
 
     @staticmethod
     def _setLayerSnappingValue(layerId, layerListId, value):
+        if not layerId:
+            return
         layerIdList = Project.readListEntry("Digitizing", "/LayerSnappingList")
         valueList = Project.readListEntry("Digitizing", layerListId)
         try:
@@ -591,6 +595,9 @@ class LayerSnappingTypeAction(SnappingTypeAction):
 
         # Make sure we catch changes in the main snapping dialog
         QgsProject.instance().snapSettingsChanged.connect(self._refresh)
+        # If using current layer, make sure we update when it changes
+        if self._iface:
+            self._iface.legendInterface().currentLayerChanged.connect(self._refresh)
         # If the layer is removed then disable the button
         QgsMapLayerRegistry.instance().layerRemoved.connect(self._layerRemoved)
         # If we change the settings, make sure others are told
@@ -598,6 +605,8 @@ class LayerSnappingTypeAction(SnappingTypeAction):
 
     def unload(self):
         QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        if self._iface:
+            self._iface.legendInterface().currentLayerChanged.connect(self._refresh)
         QgsMapLayerRegistry.instance().layerRemoved.disconnect(self._layerRemoved)
         self.snappingTypeChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
@@ -746,6 +755,9 @@ class LayerSnappingUnitAction(SnappingUnitAction):
 
         # Make sure we catch changes in the main snapping dialog
         QgsProject.instance().snapSettingsChanged.connect(self._refresh)
+        # If using current layer, make sure we update when it changes
+        if self._iface:
+            self._iface.legendInterface().currentLayerChanged.connect(self._refresh)
         # If the layer is removed then disable the button
         QgsMapLayerRegistry.instance().layerRemoved.connect(self._layerRemoved)
         # If we change the settings, make such others are told
@@ -753,6 +765,8 @@ class LayerSnappingUnitAction(SnappingUnitAction):
 
     def unload(self):
         QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        if self._iface:
+            self._iface.legendInterface().currentLayerChanged.connect(self._refresh)
         QgsMapLayerRegistry.instance().layerRemoved.disconnect(self._layerRemoved)
         self.snappingUnitChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
@@ -924,6 +938,9 @@ class LayerSnappingToleranceAction(SnappingToleranceAction):
 
         # Make sure we catch changes in the main snapping dialog
         QgsProject.instance().snapSettingsChanged.connect(self._refresh)
+        # If using current layer, make sure we update when it changes
+        if self._iface and self._layerId == '':
+            self._iface.legendInterface().currentLayerChanged.connect(self._refresh)
         # If the layer is removed then disable the button
         QgsMapLayerRegistry.instance().layerRemoved.connect(self._layerRemoved)
         # If we change the settings, make such others are told
@@ -931,6 +948,8 @@ class LayerSnappingToleranceAction(SnappingToleranceAction):
 
     def unload(self):
         QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        if self._iface and self._layerId == '':
+            self._iface.legendInterface().currentLayerChanged.disconnect(self._refresh)
         QgsMapLayerRegistry.instance().layerRemoved.disconnect(self._layerRemoved)
         self.snappingToleranceChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
@@ -1013,12 +1032,9 @@ class LayerSnappingEnabledAction(QAction):
         elif isinstance(snapLayer, str) or isinstance(snapLayer, unicode):
             self._layerId = snapLayer
 
-        if not self.layerId():
-            return
-
         self.setCheckable(True)
         self.setText('Toggle Layer Snapping')
-        self.setStatusTip('Toggled snapping on this layer')
+        self.setStatusTip('Toggle snapping on this layer')
         self.setIcon(QIcon(':/plugins/ark/snapEnable.png'))
 
         self._refresh()
@@ -1026,6 +1042,9 @@ class LayerSnappingEnabledAction(QAction):
 
         # Make sure we catch changes in the main snapping dialog
         QgsProject.instance().snapSettingsChanged.connect(self._refresh)
+        # If using current layer, make sure we update when it changes
+        if self._iface:
+            self._iface.legendInterface().currentLayerChanged.connect(self._refresh)
         # If the layer is removed then disable the button
         QgsMapLayerRegistry.instance().layerRemoved.connect(self._layerRemoved)
         # If we change the settings, make such others are told
@@ -1033,6 +1052,8 @@ class LayerSnappingEnabledAction(QAction):
 
     def unload(self):
         self._layerRemoved(self._layerId)
+        if self._iface:
+            self._iface.legendInterface().currentLayerChanged.disconnect(self._refresh)
 
     def layerId(self):
         if self._iface and self._iface.legendInterface().currentLayer():
@@ -1051,6 +1072,7 @@ class LayerSnappingEnabledAction(QAction):
 
     def _triggered(self, status):
         layerId = self.layerId()
+        utils.logMessage('_triggered ' + utils.printable(layerId))
         if layerId:
             Snapping.setLayerSnappingEnabled(layerId, status)
             self.snappingEnabledChanged.emit(layerId, status)
@@ -1102,6 +1124,9 @@ class LayerSnappingAvoidIntersectionsAction(QAction):
 
         # Make sure we catch changes in the main snapping dialog
         QgsProject.instance().snapSettingsChanged.connect(self._refresh)
+        # If using current layer, make sure we update when it changes
+        if self._iface:
+            self._iface.legendInterface().currentLayerChanged.connect(self._refresh)
         # If the layer is removed then disable the button
         QgsMapLayerRegistry.instance().layerRemoved.connect(self._layerRemoved)
         # If we change the settings, make such others are told
@@ -1109,6 +1134,8 @@ class LayerSnappingAvoidIntersectionsAction(QAction):
 
     def unload(self):
         QgsProject.instance().snapSettingsChanged.disconnect(self._refresh)
+        if self._iface:
+            self._iface.legendInterface().currentLayerChanged.disconnect(self._refresh)
         QgsMapLayerRegistry.instance().layerRemoved.disconnect(self._layerRemoved)
         self.avoidIntersectionsChanged.disconnect(QgsProject.instance().snapSettingsChanged)
 
@@ -1258,9 +1285,12 @@ class ControlMenu(QMenu):
 
     def mouseReleaseEvent(self, e):
         action = self.activeAction()
+        utils.logMessage('clicked!')
         if e.modifiers() == Qt.ControlModifier and action is not None and action.isEnabled():
+            utils.logMessage('triggered active!')
             action.trigger()
         else:
+            utils.logMessage('passed through!')
             super(ControlMenu, self).mouseReleaseEvent(e)
 
 class ProjectSnappingAction(ProjectSnappingEnabledAction):
@@ -1388,7 +1418,7 @@ class LayerSnappingAction(LayerSnappingEnabledAction):
         self._snappingTypeActionGroup.addAction(self._segmentAction)
         self._snappingTypeActionGroup.addAction(self._vertexSegmentAction)
 
-        self._toleranceAction = LayerSnappingToleranceAction(self._layerId, parent)
+        self._toleranceAction = LayerSnappingToleranceAction(snapLayer, parent)
 
         self._pixelUnitsAction = LayerSnappingUnitAction(snapLayer, Snapping.Pixels, self)
         self._layerUnitsAction = LayerSnappingUnitAction(snapLayer, Snapping.LayerUnits, self)
@@ -1414,6 +1444,9 @@ class LayerSnappingAction(LayerSnappingEnabledAction):
 
         # Make sure we catch changes in the main snapping dialog
         QgsProject.instance().snapSettingsChanged.connect(self._refreshAction)
+        # If using current layer, make sure we update when it changes
+        if self._iface:
+            self._iface.legendInterface().currentLayerChanged.connect(self._refreshAction)
         # If any of the settings change then signal, but don't tell project as actions already have
         self.snappingEnabledChanged.connect(self.snapSettingsChanged)
         self._vertexAction.snappingTypeChanged.connect(self.snapSettingsChanged)
@@ -1463,7 +1496,7 @@ class LayerSnappingAction(LayerSnappingEnabledAction):
             self.setIcon(self._vertexAction.icon())
         if self._iface and self._avoidAction:
             layer = QgsMapLayerRegistry.instance().mapLayer(self.layerId())
-            isPolygon = layer and layer.geometryType() == QGis.Polygon
+            isPolygon = (not layer is None and layer.type() == QgsMapLayer.VectorLayer and layer.geometryType() == QGis.Polygon)
             self._avoidAction.setEnabled(isPolygon)
 
 # Individual Project Snapping Widgets
