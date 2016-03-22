@@ -165,13 +165,24 @@ def cloneAsMemoryLayer(layer, name, styleURI=None, symbology=None):
     if (layer is not None and layer.isValid() and layer.type() == QgsMapLayer.VectorLayer):
         if styleURI is None and symbology is None:
             symbology = getSymbology(layer)
-        return createMemoryLayer(name, layer.wkbType(), layer.crs(), layer.dataProvider().fields(), styleURI, symbology)
+        mem = createMemoryLayer(name, layer.wkbType(), layer.crs(), layer.dataProvider().fields(), styleURI, symbology)
+        # Hack required to keep fields defined!
+        mem.startEditing()
+        ft = QgsFeature(layer.dataProvider().fields())
+        mem.addFeature(ft)
+        mem.deleteFeature(ft.id())
+        mem.commitChanges()
+        return mem
     return QgsVectorLayer()
 
-def duplicateAsMemoryLayer(layer, memName):
+def duplicateAsMemoryLayer(layer, memName, selected=False):
     mem = cloneAsMemoryLayer(layer, memName)
     mem.startEditing()
-    fi = layer.getFeatures()
+    fi = None
+    if selected:
+        fi = layer.selectedFeaturesIterator()
+    else:
+        fi = layer.getFeatures()
     for feature in fi:
         mem.addFeature(feature)
     mem.commitChanges()
