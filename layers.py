@@ -230,6 +230,7 @@ def addLayerToLegend(iface, layer, group=-1):
         if group >= 0:
             iface.legendInterface().moveLayer(layer, group)
         iface.legendInterface().refreshLayerSymbology(layer)
+        iface.legendInterface().setLayerExpanded(ret, False)
         return ret
     return layer
 
