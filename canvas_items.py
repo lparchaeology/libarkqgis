@@ -49,7 +49,6 @@ class FeatureHighlight(QgsMapCanvasItem):
     def __init__(self, mapCanvas, feature, layer):
         super(FeatureHighlight, self).__init__(mapCanvas)
         if not layer or not feature or not isinstance(feature, QgsFeature) or not feature.geometry() or feature.geometry().isEmpty() or not feature.geometry().isGeosValid():
-            utils.logMessage(' - invalid feature')
             return
         self._mapCanvas = mapCanvas
         self._feature = QgsFeature(feature) # Force deep copy
@@ -118,28 +117,22 @@ class FeatureHighlight(QgsMapCanvasItem):
 
     # private:
     def _setSymbol(self, symbol, context, color, fillColor):
-        utils.logMessage('_setSymbol')
         if  not symbol:
-            utils.logMessage('-not valid')
             return
 
         for symbolLayer in reversed(symbol.symbolLayers()):
             if symbolLayer:
                 if symbolLayer.subSymbol():
-                    utils.logMessage('-sub symbol')
                     self._setSymbol(symbolLayer.subSymbol(), context, color, fillColor)
                 else:
                     symbolLayer.setColor(color)
                     symbolLayer.setOutlineColor(color)
                     symbolLayer.setFillColor(fillColor)
                     if isinstance(symbolLayer, QgsSimpleMarkerSymbolLayerV2):
-                        utils.logMessage('--marker')
                         symbolLayer.setOutlineWidth(self._getSymbolWidth(context, symbolLayer.outlineWidth(), symbolLayer.outlineWidthUnit()))
                     if symbolLayer.type() == QgsSymbolV2.Line:
-                        utils.logMessage('--line')
                         symbolLayer.setWidth(self._getSymbolWidth(context, symbolLayer.width(), symbolLayer.widthUnit()))
                     if symbolLayer.type() == QgsSymbolV2.Fill:
-                        utils.logMessage('--fill')
                         symbolLayer.setBorderWidth(self._getSymbolWidth(context, symbolLayer.borderWidth(), symbolLayer.outputUnit()))
                     symbolLayer.removeDataDefinedProperty('color')
                     symbolLayer.removeDataDefinedProperty('color_border')
@@ -170,10 +163,8 @@ class GeometryHighlight(QgsMapCanvasItem):
 
     def __init__(self, mapCanvas, geometry, layer):
         super(GeometryHighlight, self).__init__(mapCanvas)
-        utils.logMessage('GeometryHighlight()')
         self._mapCanvas = mapCanvas
         if not geometry or not isinstance(geometry, QgsGeometry) or geometry.isEmpty() or not geometry.isGeosValid():
-            utils.logMessage(' - invalid geom')
             return
         self._geometry = QgsGeometry(geometry) # Force deep copy
         self.setLineColor(Project.highlightLineColor())
@@ -206,7 +197,6 @@ class GeometryHighlight(QgsMapCanvasItem):
     # protected:
     def paint(self, painter, option=None, widget=None): # Override
         if not self._geometry:
-            utils.logMessage(' - no geom')
             return
 
         painter.setPen(self._pen)
