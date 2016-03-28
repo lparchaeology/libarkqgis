@@ -33,6 +33,7 @@ from qgis.gui import QgsHighlight
 
 import utils
 from project import Project
+from canvas_items import GeometryHighlight, FeatureHighlight
 
 # Layer Widgets
 
@@ -605,25 +606,20 @@ def isWritable(layer):
                 and dbfFile.exists() and dbfFile.isWritable())
     return True
 
-def addHighlight(canvas, featureOrGeometry, layer, color=None, buff=None, minWidth=None):
+def addHighlight(canvas, featureOrGeometry, layer, lineColor=None, fillColor=None, buff=None, minWidth=None):
     # TODO Open bug report for QgsHighlight sip not having QgsFeature constructor.
-    if type(featureOrGeometry) == QgsFeature:
-        featureOrGeometry = featureOrGeometry.geometry()
-    hl = QgsHighlight(canvas, featureOrGeometry, layer)
-    lineColor = None
-    fillColor = None
-    if color is None:
-        lineColor = Project.highlightLineColor()
-        fillColor = Project.highlightFillColor()
-    else:
-        lineColor = QColor(color.name())
-        fillColor = color
-    if buff is None:
-        buff = Project.highlightBuffer()
-    if minWidth is None:
-        minWidth = Project.highlightMinimumWidth()
-    hl.setColor(lineColor)
-    hl.setFillColor(fillColor)
-    hl.setBuffer(buff)
-    hl.setMinWidth(minWidth)
+    #hl = QgsHighlight(canvas, featureOrGeometry, layer)
+    hl = None
+    if isinstance(featureOrGeometry, QgsFeature):
+        hl = FeatureHighlight(canvas, featureOrGeometry, layer)
+        if minWidth:
+            hl.setMinWidth(minWidth)
+    elif isinstance(featureOrGeometry, QgsGeometry):
+        hl = GeometryHighlight(canvas, featureOrGeometry, layer)
+    if lineColor:
+        hl.setLineColor(lineColor)
+    if fillColor:
+        hl.setFillColor(fillColor)
+    if buff:
+        hl.setBuffer(buff)
     return hl

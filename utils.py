@@ -24,10 +24,15 @@
  ***************************************************************************/
 """
 
-from PyQt4.QtCore import Qt, QDateTime, QRegExp
+from PyQt4.QtCore import Qt, QDateTime, QRegExp, QRectF
 
 from qgis.core import QGis, QgsProject, NULL, QgsMessageLog, QgsGeometry, QgsPoint, QgsFeatureRequest, QgsFeature
 from qgis.gui import QgsMessageBar
+
+# Maths utilities
+
+def bound(minVal, val, maxVal):
+    return max(min(val, maxVal), minVal)
 
 # Datetime utilities
 
@@ -45,6 +50,8 @@ def printable(val):
         return 's' + doublequote(val)
     if type(val) == unicode:
         return 'u' + doublequote(val)
+    if type(val) == QRectF:
+        return 'QRectF(' + str(val.x()) + ', ' + str(val.y()) + ', ' + str(val.width()) + ', ' + str(val.height()) + ')'
     if type(val) == QgsPoint:
         return 'QgsPoint(' + val.toString(3) + ')'
     if type(val) == QgsGeometry:
