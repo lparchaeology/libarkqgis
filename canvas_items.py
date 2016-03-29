@@ -48,9 +48,9 @@ class FeatureHighlight(QgsMapCanvasItem):
 
     def __init__(self, mapCanvas, feature, layer):
         super(FeatureHighlight, self).__init__(mapCanvas)
+        self._mapCanvas = mapCanvas
         if not layer or not feature or not isinstance(feature, QgsFeature) or not feature.geometry() or feature.geometry().isEmpty() or not feature.geometry().isGeosValid():
             return
-        self._mapCanvas = mapCanvas
         self._feature = QgsFeature(feature) # Force deep copy
         self._layer = layer
         self.setLineColor(Project.highlightLineColor())
