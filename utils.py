@@ -93,10 +93,10 @@ def rangeToList(valueRange):
     return sorted(lst)
 
 def listToRange(valueList):
-    inList = sorted(set(valueList))
     valueRange = ''
-    if len(inList) == 0:
+    if len(valueList) == 0:
         return valueRange
+    inList = sorted(set(valueList))
     prev = inList[0]
     start = prev
     for this in inList[1:]:
@@ -104,7 +104,7 @@ def listToRange(valueList):
             if prev == start:
                 valueRange = valueRange + ' ' + str(prev)
             else:
-                valueRange = valueRange + ' ' + str(start) + '-' + str(this)
+                valueRange = valueRange + ' ' + str(start) + '-' + str(prev)
             start = this
         prev = this
     if prev == start:
