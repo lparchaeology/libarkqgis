@@ -59,7 +59,8 @@ class FeatureHighlight(QgsMapCanvasItem):
         self._buffer = Project.highlightBuffer()
         if self._mapCanvas.mapSettings().hasCrsTransformEnabled():
             ct = self._mapCanvas.mapSettings().layerTransform(self._layer)
-            self._feature.geometry().transform(ct)
+            if ct:
+                self._feature.geometry().transform(ct)
         self.updateRect()
         self.update()
 
