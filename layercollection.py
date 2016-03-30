@@ -267,11 +267,10 @@ class LayerCollection:
                 else:
                     # If the layer does exist, then load it and copy the style
                     layer = QgsVectorLayer(fullLayerPath, layerName, 'ogr')
-                    if layer and layer.isValid():
-                        layers.loadStyle(layer, fromLayer=sourceLayer)
                 layer = layers.addLayerToLegend(self._iface, layer, self._bufferGroupIndex)
         if layer and layer.isValid():
             layerId = layer.id()
+            layers.loadStyle(layer, fromLayer=sourceLayer)
             self._setDefaultSnapping(layer)
             layer.startEditing()
             layer.setFeatureFormSuppress(QgsVectorLayer.SuppressOn)
