@@ -347,7 +347,7 @@ def addFeatures(features, layer, undoMessage='Add features to layer', log=False,
             if not ok:
                 if log:
                     try:
-                        logLayer.rollback()
+                        logLayer.rollBack()
                     except:
                         utils.logMessage('TODO: Rollback on log layer???')
                 layer.rollBack()
@@ -415,7 +415,7 @@ def copyFeatureRequest(featureRequest, fromLayer, toLayer, undoMessage='Copy fea
             if not ok:
                 if log:
                     try:
-                        logLayer.rollback()
+                        logLayer.rollBack()
                     except:
                         utils.logMessage('TODO: Rollback on log layer???')
                 toLayer.rollBack()
@@ -485,7 +485,7 @@ def deleteFeatureRequest(featureRequest, layer, undoMessage='Delete features', l
             if not ok:
                 if log:
                     try:
-                        logLayer.rollback()
+                        logLayer.rollBack()
                     except:
                         utils.logMessage('TODO: Rollback on log layer???')
                 layer.rollBack()

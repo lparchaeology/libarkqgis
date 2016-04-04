@@ -369,6 +369,14 @@ class LayerCollection:
             merge = False
         return merge
 
+    def resetBuffers(self, undoMessage='Reset Buffers'):
+        self._resetBuffer(self.pointsBuffer, undoMessage + ' - points')
+        self._resetBuffer(self.linesBuffer, undoMessage + ' - lines')
+        self._resetBuffer(self.polygonsBuffer, undoMessage + ' - polygons')
+
+    def _resetBuffer(self, layer, undoMessage):
+        return layer.rollBack() and layer.startEditing()
+
     def clearBuffers(self, undoMessage='Clear Buffers'):
         self._clearBuffer(self.pointsBuffer, undoMessage + ' - points')
         self._clearBuffer(self.linesBuffer, undoMessage + ' - lines')
