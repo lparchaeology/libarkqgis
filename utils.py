@@ -73,6 +73,15 @@ def quote(val):
 def doublequote(val):
     return '"' + str(val) + '"'
 
+def csv(values):
+    return ','.join(csvValue(value) for value in values)
+
+def csvValue(value):
+    if isinstance(value, str) or isinstance(value, unicode):
+        return doublequote(value)
+    else:
+        return str(value)
+
 def eqClause(field, value):
     return doublequote(field) + ' = ' + quote(value)
 
