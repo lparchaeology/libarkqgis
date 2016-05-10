@@ -41,6 +41,8 @@ class ArkDockWidget(QDockWidget):
 
     def __init__(self, parent=None):
         super(ArkDockWidget, self).__init__(parent)
+        # HACK Work around a crash when dragging!
+        self.setFeatures(QDockWidget.DockWidgetClosable)
 
     def initGui(self, iface, location, menuAction):
         self._iface = iface
