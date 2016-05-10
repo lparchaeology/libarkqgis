@@ -846,6 +846,32 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
         return layerPoints
 
 
+# Tool to take a line segment and then save as a buffer polygon
+class ArkMapToolAddBufferSegment(ArkMapToolAddFeature):
+
+    _bufferDistance = 0.1  # Map Units
+
+    def __init__(self, iface, distance,  polygonLayer, toolName=''):
+        super(ArkMapToolSectionSchematic, self).__init__(iface, polygonLayer, FeatureType.Segment, toolName)
+        self.setBuffer(distance)
+
+    def setBuffer(self, distance):
+        self._bufferDistance = 0.1  # Map Units
+
+    def addAnyFeature(self, featureType, mapPointList, attributes, layer):
+        if featureType == FeatureType.Segment:
+            if len(mapPointList) != 2:
+                return False
+            lineGeom = QgsGeometry.fromPolyline(mapPointList)
+            polyGeom = lineGeom.buffer(self._bufferDistance, 0, 2, 2, 5.0)
+            if polyGeom and polyGeom.isGeosValid():
+                mapPointList = polyGeom.asPolygon()[0]
+            else:
+                mapPointList = []
+            featureType = FeatureType.Polygon
+        super(ArkMapToolSectionSchematic, self).addAnyFeature(featureType, mapPointList, attributes, layer)
+
+
 # TODO Clean up this and fix dialog problems
 class ArkFeatureAction(QAction):
 
