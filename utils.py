@@ -24,6 +24,8 @@
  ***************************************************************************/
 """
 
+import re
+
 from PyQt4.QtCore import Qt, QDateTime, QRegExp, QRectF
 
 from qgis.core import QGis, QgsProject, NULL, QgsMessageLog, QgsGeometry, QgsPoint, QgsFeatureRequest, QgsFeature
@@ -90,6 +92,9 @@ def neClause(field, value):
 
 # List/Range conversion utilities
 
+def natsorted(l):
+    return sorted(l, key=lambda item: (int(item.partition(' ')[0]) if item[0].isdigit() else float('inf'), item))
+
 def rangeToList(valueRange):
     lst = []
     for clause in valueRange.split():
@@ -105,7 +110,7 @@ def listToRange(valueList):
     valueRange = ''
     if len(valueList) == 0:
         return valueRange
-    inList = sorted(set(valueList))
+    inList = natsorted(set(valueList))
     prev = inList[0]
     start = prev
     for this in inList[1:]:
