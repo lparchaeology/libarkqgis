@@ -30,7 +30,7 @@ A QDockWidget for use in a QGIS Plugin
 
 import os
 
-from PyQt4.QtCore import pyqtSignal, QSize
+from PyQt4.QtCore import Qt, pyqtSignal, QSize
 from PyQt4.QtGui import QDockWidget, QWidget, QVBoxLayout, QToolBar, QSizePolicy
 
 class ArkDockWidget(QDockWidget):
@@ -95,6 +95,7 @@ class ToolDockWidget(ArkDockWidget):
         self.widget = widget
 
         self._layout = QVBoxLayout(self)
+        self._layout.setAlignment(Qt.AlignTop)
         self._layout.setObjectName(u'layout')
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addWidget(self.toolbar)
