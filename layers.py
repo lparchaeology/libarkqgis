@@ -154,6 +154,18 @@ def createMemoryLayer(name, wkbType, crs, fields=None, styleURI=None, symbology=
         loadStyle(layer, styleURI, symbology)
     return layer
 
+def copyFeatures(fromLayer, toLayer, selected=False):
+    toLayer.startEditing()
+    fi = None
+    if selected:
+        fi = fromLayer.selectedFeaturesIterator()
+    else:
+        fi = fromLayer.getFeatures()
+    for feature in fi:
+        toLayer.addFeature(feature)
+    toLayer.commitChanges()
+    return toLayer
+
 def cloneAsShapefile(layer, filePath, name, styleURI=None, symbology=None):
     # WARNING This will overwrite existing files
     if (layer is not None and layer.isValid() and layer.type() == QgsMapLayer.VectorLayer):
@@ -161,6 +173,10 @@ def cloneAsShapefile(layer, filePath, name, styleURI=None, symbology=None):
             symbology = getSymbology(layer)
         return createShapefile(filePath, name, layer.wkbType(), layer.crs(), layer.dataProvider().fields(), styleURI, symbology)
     return QgsVectorLayer()
+
+def duplicateAsShapefile(layer, filePath, name, selected=False):
+    shp = cloneAsShapefile(layer, filePath, name)
+    return copyFeatures(layer, shp, selected)
 
 def cloneAsMemoryLayer(layer, name, styleURI=None, symbology=None):
     if (layer is not None and layer.isValid() and layer.type() == QgsMapLayer.VectorLayer):
@@ -176,18 +192,9 @@ def cloneAsMemoryLayer(layer, name, styleURI=None, symbology=None):
         return mem
     return QgsVectorLayer()
 
-def duplicateAsMemoryLayer(layer, memName, selected=False):
-    mem = cloneAsMemoryLayer(layer, memName)
-    mem.startEditing()
-    fi = None
-    if selected:
-        fi = layer.selectedFeaturesIterator()
-    else:
-        fi = layer.getFeatures()
-    for feature in fi:
-        mem.addFeature(feature)
-    mem.commitChanges()
-    return mem
+def duplicateAsMemoryLayer(layer, name, selected=False):
+    mem = cloneAsMemoryLayer(layer, name)
+    return copyFeatures(layer, mem, selected)
 
 def loadStyle(layer, styleURI=None, symbology=None, fromLayer=None):
     if (layer is not None and layer.isValid() and layer.type() == QgsMapLayer.VectorLayer):
