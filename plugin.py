@@ -327,6 +327,9 @@ class Plugin(QObject):
     def projectCrs(self):
         return Project.crs(self.iface)
 
+    def projectFilePath():
+        return Project.filePath()
+
     # Settings utilities
 
     def setEntry(self, key, value, default=None):

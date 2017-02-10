@@ -82,6 +82,10 @@ class Project:
         return QSettings().value('/Map/highlight/minWidth', QGis.DEFAULT_HIGHLIGHT_MIN_WIDTH_MM, float)
 
     @staticmethod
+    def filePath():
+        return QgsProject.instance().fileinfo().canonicalFilePath()
+
+    @staticmethod
     def setEntry(scope, key, value, default=None):
         if (value == None or value == '' or value == default):
             return QgsProject.instance().removeEntry(scope, key)
