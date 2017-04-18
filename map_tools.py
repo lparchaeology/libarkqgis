@@ -66,9 +66,10 @@ class FeatureType():
 
     NoFeature = 0
     Point = 1
-    Segment = 2
-    Line = 3
-    Polygon = 4
+    Elevation = 2
+    Segment = 3
+    Line = 4
+    Polygon = 5
 
 
 class ArkMapToolIndentifyFeatures(QgsMapToolIdentify):
@@ -698,7 +699,7 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
         super(ArkMapToolAddFeature, self).canvasReleaseEvent(e)
         if (e.isAccepted()):
             return
-        if (self._featureType == FeatureType.Point):
+        if (self._featureType == FeatureType.Point or self._featureType == FeatureType.Elevation):
             if (e.button() == Qt.LeftButton):
                 self.addFeature()
                 e.accept()
@@ -717,7 +718,7 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
 
     def addAnyFeature(self, featureType, mapPointList, attributes, layer):
         #points: bail out if there is not exactly one vertex
-        if (featureType == FeatureType.Point and len(mapPointList) != 1):
+        if ((featureType == FeatureType.Point or featureType == FeatureType.Elevation) and len(mapPointList) != 1):
             return False
 
         #segments: bail out if there are not exactly two vertices
@@ -791,7 +792,7 @@ class ArkMapToolAddFeature(ArkMapToolCapture):
 
         featureSaved = self._addFeatureAction(feature, attributes, layer, False)
 
-        if (featureSaved and featureType != FeatureType.Point):
+        if (featureSaved and featureType != FeatureType.Point and featureType != FeatureType.Elevation):
             #add points to other features to keep topology up-to-date
             topologicalEditing = Snapping.topologicalEditing()
 
